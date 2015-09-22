@@ -1,3 +1,11 @@
 This repository includes only the source code, the dataset can be found there:
 https://owncloud.tu-berlin.de/public.php?service=files&t=709f973be5e5d18ef5aa2a0b3c83221f
 
+DEPENDENCIES
+
+python, scipy, numpy, matplotlib, opencv, sklearn
+gco graph cut library with python wrapper (https://github.com/amueller/gco_python)
+
+GETTING THE CODE TO RUN
+
+-> TODO
