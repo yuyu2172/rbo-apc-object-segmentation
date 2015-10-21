@@ -22,8 +22,8 @@ scheme_dark2 = np.array([(27,158,119),(217,95,2),(117,112,179),(231,41,138),(102
 # implements F_beta score: the weighted harmonic mean between precision and recal.as
 # beta measures the importance of recall.
 def f_score(precision, recall, beta=1):
-    if precision == recall == 0:
-        return 0
+    if precision == recall == 0.0:
+        return 0.0
     else:
         return (1.0 + beta**2) * precision * recall / (beta**2 * precision + recall)
 
@@ -71,7 +71,6 @@ def train_and_evaluate(rf, training_set, evaluation_sets_dict, show_images=False
 
                     predicted_segment = rf.predict(APCSample(apc_sample=sample, labeled=False), desired_object)
 
-
                     true_positives = np.sum(np.logical_and(true_segment, predicted_segment)).astype('double')
                     positives = np.sum(predicted_segment.astype('bool')).astype('double')
                     relevant = np.sum(true_segment.astype('bool')).astype('double')
@@ -99,7 +98,6 @@ def train_and_evaluate(rf, training_set, evaluation_sets_dict, show_images=False
                                 plt.savefig(save_image_path+'{}_{}_{}.png'.format(i, mode, desired_object), bbox_inches = 'tight')
 
                         plt.close('all')
-
 
         print('\r{} mean precision: {:.2}'.format(mode, np.mean(precisions[mode])))
         print('{} mean recall: {:.2}'.format(mode, np.mean(recalls[mode])))
@@ -170,11 +168,11 @@ def experiment_APC(datasets, results_path, only_berlin_data=False):
 
     results = dict()
 
-    for rf_name, rf in methods.iteritems():
+    for method_name, method in methods.iteritems():
 
-        print(rf_name)
+        print(method_name)
 
-        results[rf_name] = train_and_evaluate(rf, datasets['training_berlin_and_seattle'],
+        results[method_name] = train_and_evaluate(method, datasets['training_berlin_and_seattle'],
             {name: datasets[name] for name in ['seattle_test']},
              show_images=True, save_image_path=path)
 
@@ -185,522 +183,40 @@ def experiment_APC(datasets, results_path, only_berlin_data=False):
 
 # 2) Performance by Object
 
-def experiment_model(datasets, results_path):
+def experiment_our_method(datasets, results_path):
 
-    path = os.path.join(results_path, 'experiment_model/')
-
-    print('Starting experiment_model ...')
-    time_string = time.strftime("%Y-%m-%d_%H-%M")
-
-    rf_params = {'use_features':['color', 'edge', 'miss3D', 'height3D', 'height2D', 'dist2shelf'],
-    #rf_params = {'use_features':['red', 'green', 'blue', 'depth'],
-    #rf_params = {'use_features':['hue', 'saturation', 'value', 'depth'],
-         'segmentation_method':"max_smooth", 'selection_method': "max_smooth",
-         'make_convex':True, 'do_shrinking_resegmentation':True, 'do_greedy_resegmentation':True}
-
-    rfs = {
-            'our_method': ProbabilisticSegmentationBP(**rf_params),
-            'rf_.000_lazy': ProbabilisticSegmentationRF({'n_estimators':100, 'min_weight_fraction_leaf':0.0}, **rf_params),
-            'rf_.005_lazy': ProbabilisticSegmentationRF({'n_estimators':100, 'min_weight_fraction_leaf':0.005}, **rf_params),
-            'rf_.010_lazy': ProbabilisticSegmentationRF({'n_estimators':100, 'min_weight_fraction_leaf':0.01}, **rf_params),
-            'rf_.020_lazy': ProbabilisticSegmentationRF({'n_estimators':100, 'min_weight_fraction_leaf':0.02}, **rf_params),
-            'rf_.040_lazy': ProbabilisticSegmentationRF({'n_estimators':100, 'min_weight_fraction_leaf':0.04}, **rf_params),
-            #'crf_.080_lazy': CRF({'n_estimators':100, 'min_weight_fraction_leaf':0.08}, **rf_params),
-            #'crf_.000': CRF({'n_estimators':100, 'min_weight_fraction_leaf':0.0}, lazy=False, **rf_params),
-            #'crf_.005': CRF({'n_estimators':100, 'min_weight_fraction_leaf':0.005}, lazy=False, **rf_params),
-            #'crf_.010': CRF({'n_estimators':100, 'min_weight_fraction_leaf':0.01}, lazy=False, **rf_params),
-            #'crf_.020': CRF({'n_estimators':100, 'min_weight_fraction_leaf':0.02}, lazy=False, **rf_params),
-            #'crf_.040': CRF({'n_estimators':100, 'min_weight_fraction_leaf':0.04}, lazy=False, **rf_params),
-            #'crf_.080': CRF({'n_estimators':100, 'min_weight_fraction_leaf':0.08}, lazy=False, **rf_params)
-        }
-
-    results = dict()
-
-    for rf_name, rf in rfs.iteritems():
-
-        print(rf_name)
-
-        results[rf_name] = train_and_evaluate(rf, datasets['berlin_selected'],
-            {name: datasets[name] for name in ['berlin_selected','berlin_runs', 'seattle_runs', 'seattle_test']}, withhold_object_info=False)
-
-        if 'crf' in rf_name:
-            mean_importance = {k: np.mean(v) for k, v in rf.feature_importances.items()}
-            print(mean_importance)
-            results[rf_name]['feature_importances'] = rf.feature_importances
-
-        with open(os.path.join(results_path, path+time_string+'.pkl'), 'wb') as f:
-            pickle.dump(results, f, 2)
-
-def experiment_samples(datasets, results_path):
-
-    path = os.path.join(results_path, 'experiment_samples/')
+    path = os.path.join(results_path, 'experiment_our_method/')
+    if not os.path.isdir(path):
+        os.makedirs(path)
 
     print('Starting experiment_samples ...')
-    time_string = time.strftime("%Y-%m-%d_%H-%M")
 
-    rf_params = {'use_features':['color', 'edge', 'miss3D', 'height3D', 'height2D', 'dist2shelf'],
+    time_string = time.strftime("%Y-%m-%d_%H-%M")
+    filename_results = os.path.join(path,time_string+'.pkl')
+
+    params = {'use_features':['color', 'height2D', 'edge', 'miss3D', 'height3D', 'dist2shelf'], # 'height2D''edge'
          'segmentation_method':"max_smooth", 'selection_method': "max_smooth",
          'make_convex':True, 'do_shrinking_resegmentation':True, 'do_greedy_resegmentation':True}
 
-    rfs = {
-            'mrf': ProbabilisticSegmentationBP(**rf_params),
-        }
+    methods = {
+            'our_method': ProbabilisticSegmentationBP(**params),
+    }
 
     results = dict()
 
-    for rf_name, rf in rfs.iteritems():
+    for method_name, method in methods.iteritems():
 
-        print(rf_name)
+        print(method_name)
 
-        results[rf_name] = train_and_evaluate(rf, datasets['berlin_selected'],
-            {name: datasets[name] for name in ['berlin_selected','berlin_runs', 'seattle_runs', 'seattle_test']},show_images=True, save_image_path=path)
+        results[method_name] = train_and_evaluate(method, datasets['berlin_selected'],
+            {name: datasets[name] for name in ['berlin_selected','berlin_runs', 'seattle_runs', 'seattle_test']}, show_images=False, save_image_path=path)
 
-        if 'crf' in rf_name:
-            mean_importance = {k: np.mean(v) for k, v in rf.feature_importances.items()}
-            print(mean_importance)
-            results[rf_name]['feature_importances'] = rf.feature_importances
-
-        with open(os.path.join(results_path, path+time_string+'.pkl'), 'wb') as f:
+        with open(filename_results, 'wb') as f:
             pickle.dump(results, f, 2)
 
-def experiment_candidates(datasets, results_path):
-
-    path = os.path.join(results_path, 'experiment_candidates/')
-
-    print('Starting experiment_candidates ...')
-    time_string = time.strftime("%Y-%m-%d_%H-%M")
-
-    rf_params = {'use_features':['color', 'edge', 'miss3D', 'height3D', 'height2D', 'dist2shelf'],
-    #rf_params = {'use_features':['red', 'green', 'blue', 'depth'],
-    #rf_params = {'use_features':['hue', 'saturation', 'value', 'depth'],
-         'segmentation_method':"max_smooth", 'selection_method': "max_smooth",
-         'make_convex':True, 'do_shrinking_resegmentation':True, 'do_greedy_resegmentation':True}
-
-    rfs = {
-            'mrf': ProbabilisticSegmentationBP(**rf_params),
-            #'crf_.000_lazy': CRF({'n_estimators':100, 'min_weight_fraction_leaf':0.0}, **rf_params),
-            #'crf_.005_lazy': CRF({'n_estimators':100, 'min_weight_fraction_leaf':0.005}, **rf_params),
-            #'crf_.010_lazy': CRF({'n_estimators':100, 'min_weight_fraction_leaf':0.01}, **rf_params),
-            #'crf_.020_lazy': CRF({'n_estimators':100, 'min_weight_fraction_leaf':0.02}, **rf_params),
-            #'crf_.040_lazy': CRF({'n_estimators':100, 'min_weight_fraction_leaf':0.04}, **rf_params),
-            #'crf_.080_lazy': CRF({'n_estimators':100, 'min_weight_fraction_leaf':0.08}, **rf_params),
-            #'crf_.000': CRF({'n_estimators':100, 'min_weight_fraction_leaf':0.0}, lazy=False, **rf_params),
-            #'crf_.005': CRF({'n_estimators':100, 'min_weight_fraction_leaf':0.005}, lazy=False, **rf_params),
-            #'crf_.010': CRF({'n_estimators':100, 'min_weight_fraction_leaf':0.01}, lazy=False, **rf_params),
-            #'crf_.020': CRF({'n_estimators':100, 'min_weight_fraction_leaf':0.02}, lazy=False, **rf_params),
-            #'crf_.040': CRF({'n_estimators':100, 'min_weight_fraction_leaf':0.04}, lazy=False, **rf_params),
-            #'crf_.080': CRF({'n_estimators':100, 'min_weight_fraction_leaf':0.08}, lazy=False, **rf_params)
-        }
-
-    results = dict()
-
-    for rf_name, rf in rfs.iteritems():
-
-        for i in range(0,21):
-
-            name  = rf_name + repr(i)
-            print(name)
-
-            results[name] = train_and_evaluate(rf, datasets['berlin_selected'],
-                {n: datasets[n] for n in ['berlin_selected','berlin_runs', 'seattle_runs']}, add_candidate_objects=i)
-
-            with open(os.path.join(results_path, path+time_string+'.pkl'), 'wb') as f:
-                pickle.dump(results, f, 2)
-
-def display_experiment_candidates(filenames):
-
-    results = dict()
-    for filename in filenames:
-        with open(filename,'rb') as f:
-            results.update(pickle.load(f))
-
-    dataset_names = ['berlin_selected', 'berlin_runs', 'seattle_runs']
-
-    model_names = ['mrf'+repr(i) for i in range(len(results.keys()))]
-    print(model_names)
-
-    plt.figure()
-    plt.hold(True)
-
-    for dataset_name in ['seattle_runs']:
-        recalls = []
-        precisions = []
-        f_scores = []
-        for i, model_name in enumerate(model_names):
-
-            recalls.append(np.mean(results[model_name]['recalls'][dataset_name]))
-            precisions.append(np.mean(results[model_name]['precisions'][dataset_name]))
-            f_scores.append(f_score(precisions[-1], recalls[-1], beta=0.5))
-
-        plt.plot(recalls, label='Recall', color=scheme_dark2[0])
-        plt.plot(precisions, label='Precision', color=scheme_dark2[1])
-        plt.plot(f_scores, label='F0.5 score', color=scheme_dark2[2])
-
-    plt.axis([0,20,0,0.8])
-    plt.xlabel('# added candidate objects')
-
-    #plt.gca().set_ylabel('F0.5 score')
-    #plt.gca().set_xticks(range(len(dataset_names)))
-    #plt.gca().set_xticklabels(('Training (Berlin)', 'Test (Berlin)', 'Test (Seattle)', 'APC (Seattle)'))
-
-    plt.legend(loc='lower left')
-
-    plt.savefig(filename.replace('.pkl', '.svg'))
-
-    plt.show()
-
-def display_experiment_model(filename):
-
-    import cPickle as pickle
-    with open(filename,'rb') as f:
-        results = pickle.load(f)
-
-    #dataset_names = ['berlin_selected', 'berlin_runs', 'seattle_runs']
-    dataset_names = ['berlin_selected', 'berlin_runs', 'seattle_runs', 'seattle_test']
-
-    print(results.keys())
-
-    model_names = ['crf_.000_lazy', 'crf_.005_lazy', 'crf_.010_lazy', 'crf_.020_lazy', 'crf_.040_lazy', 'mrf']
-    colors = {'crf_.000_lazy': 1.1*scheme_dark2[5], 'crf_.005_lazy': 0.95*scheme_dark2[5], 'crf_.010_lazy': 0.8*scheme_dark2[5], 'crf_.020_lazy': 0.65*scheme_dark2[5], 'crf_.040_lazy': 0.5*scheme_dark2[5], 'mrf': scheme_dark2[4]}
-
-    plt.figure()
-    plt.hold(True)
-    width_all = 0.8
-    width_bar_rel = 0.9
-    width_bar = width_all/len(model_names)
-    x = np.arange(len(dataset_names)) - width_all/2
-    for i, model_name in enumerate(model_names):
-        recalls = [np.mean(results[model_name]['recalls'][dataset_name]) for dataset_name in dataset_names]
-        precisions = [np.mean(results[model_name]['precisions'][dataset_name]) for dataset_name in dataset_names]
-        f_scores = [f_score(precision, recall, beta=0.5) for precision, recall in zip(precisions, recalls)]
-        plt.bar(x + i*width_bar, f_scores, width=width_bar*width_bar_rel, label=model_name.replace('mrf', 'Our method'), color=colors[model_name], linewidth=0)
-
-    plt.gca().set_ylabel('F0.5 score')
-    plt.gca().set_xticks(range(len(dataset_names)))
-    plt.gca().set_xticklabels(('Training (Berlin)', 'Test (Berlin)', 'Test (Seattle)', 'APC (Seattle)'))
-
-    plt.legend(loc='lower left')
-
-    plt.savefig(filename.replace('.pkl', '.svg'))
-
-    plt.show()
-
-def experiment_model_data(datasets, results_path):
-
-    print('Starting experiment_model_data ...')
-
-    rf_params = {'use_features':['color', 'edge', 'miss3D', 'height3D', 'height2D', 'dist2shelf'],
-         'segmentation_method':"max_smooth", 'selection_method': "max_smooth",
-         'make_convex':True, 'do_shrinking_resegmentation':True, 'do_greedy_resegmentation':True}
-
-    #datasets['seattle_runs_a'] = combine_datasets([datasets["seattle_runs/"+str(i+1)] for i in [0,1]])
-    #datasets['seattle_runs_b'] = combine_datasets([datasets["seattle_runs/"+str(i+1)] for i in [2,3,4]])
-    #datasets['training_berlin_and_seattle'] = combine_datasets([datasets['seattle_runs_a'], datasets['berlin_selected']])
-
-    rfs = {
-            'mrf': ProbabilisticSegmentationBP(**rf_params),
-            'crf_.000': ProbabilisticSegmentationRF({'n_estimators':100, 'min_weight_fraction_leaf':0.0}, **rf_params),
-            'crf_.005': ProbabilisticSegmentationRF({'n_estimators':100, 'min_weight_fraction_leaf':0.005}, **rf_params),
-            'crf_.010': ProbabilisticSegmentationRF({'n_estimators':100, 'min_weight_fraction_leaf':0.01}, **rf_params),
-            'crf_.020': ProbabilisticSegmentationRF({'n_estimators':100, 'min_weight_fraction_leaf':0.02}, **rf_params),
-            'crf_.040': ProbabilisticSegmentationRF({'n_estimators':100, 'min_weight_fraction_leaf':0.04}, **rf_params),
-            'crf_.080': ProbabilisticSegmentationRF({'n_estimators':100, 'min_weight_fraction_leaf':0.08}, **rf_params)
-        }
-
-    results = dict()
-
-    for rf_name, rf in rfs.iteritems():
-
-        print(rf_name)
-
-        results[rf_name] = train_and_evaluate(rf, datasets['berlin_selected'],
-            {name: datasets[name] for name in ['berlin_selected','berlin_runs', 'seattle_runs', 'seattle_test']})
-
-        with open(os.path.join(results_path, 'experiment_optimal.pkl'), 'wb') as f:
-            pickle.dump(results, f, 2)
-
-def experiment_segmentation(datasets, results_path):
-
-    path = os.path.join(results_path, 'experiment_segmentation/')
-
-    print('Starting experiment_segmentation ...')
-    time_string = time.strftime("%Y-%m-%d_%H-%M")
-
-    rf_params = {'use_features':['color', 'edge', 'miss3D', 'height3D', 'height2D', 'dist2shelf'],
-         'make_convex':False, 'do_shrinking_resegmentation':False, 'do_greedy_resegmentation':False}
-
-    results = dict()
-
-    for segmentation_method in ["max", "max_smooth", "simple_cut", "edge_cut"]:
-        for selection_method in ["all", "max_smooth", "largest"]:
-            rf_params['segmentation_method'] = segmentation_method
-            rf_params['selection_method'] = selection_method
-            rf = ProbabilisticSegmentationBP(**rf_params)
-
-            name = "seg_{}_sel_{}".format(segmentation_method, selection_method)
-            print(name)
-
-            results[name] = train_and_evaluate(rf, datasets['berlin_selected'],
-                {name: datasets[name] for name in ['berlin_selected','berlin_runs', 'seattle_runs']})
-
-            with open(os.path.join(results_path, path+time_string+'.pkl'), 'wb') as f:
-                pickle.dump(results, f, 2)
-
-def display_experiment_segmentation(filenames):
-
-    results = dict()
-    for filename in filenames:
-        with open(filename,'rb') as f:
-            results.update(pickle.load(f))
-
-    dataset_name = 'seattle_runs'
-
-    model_names = results.keys()
-    print(model_names)
-
-    recalls = np.zeros((4,3))
-    precisions = np.zeros((4,3))
-    f_scores = np.zeros((4,3))
-
-    segmentation_methods = ['seg_max', 'seg_max_smooth', 'seg_simple_cut', 'seg_edge_cut']
-    selection_methods = ['sel_all', 'sel_largest', 'sel_max_smooth']
-
-    for i, segmentation_method in enumerate(segmentation_methods):
-        for j, selection_method in enumerate(selection_methods):
-            model_name = segmentation_method + '_' + selection_method
-            recalls[i,j] = np.mean(results[model_name]['recalls'][dataset_name])
-            precisions[i,j] = np.mean(results[model_name]['precisions'][dataset_name])
-            f_scores[i,j] = f_score(precisions[i,j], recalls[i,j], beta=0.5)
-
-
-    cmap = plt.get_cmap('coolwarm')
-
-    plt.figure()
-    plt.imshow(precisions, vmin=0, vmax=1, interpolation='nearest', cmap=cmap)
-    plt.colorbar(label='Precision')
-
-    plt.savefig(filename.replace('.pkl', '.svg'))
-    plt.gca().set_yticks(np.arange(len(segmentation_methods)))
-    plt.gca().set_yticklabels(map(lambda x: x.replace('seg_',''), segmentation_methods))
-    plt.gca().set_xticks(np.arange(len(selection_methods)))
-    plt.gca().set_xticklabels(map(lambda x: x.replace('sel_',''), selection_methods))#, rotation='vertical')
-    #plt.setp(plt.gca().get_xticklabels(), rotation='vertical')
-
-
-    plt.figure()
-    plt.imshow(recalls, vmin=0, vmax=1, interpolation='nearest', cmap=cmap)
-    plt.colorbar(label='Recall')
-
-    plt.savefig(filename.replace('.pkl', '.svg'))
-    plt.gca().set_yticks(np.arange(len(segmentation_methods)))
-    plt.gca().set_yticklabels(map(lambda x: x.replace('seg_',''), segmentation_methods))
-    plt.gca().set_xticks(np.arange(len(selection_methods)))
-    plt.gca().set_xticklabels(map(lambda x: x.replace('sel_',''), selection_methods))#, rotation='vertical')
-    #plt.setp(plt.gca().get_xticklabels(), rotation='vertical')
-
-
-    plt.figure()
-    plt.imshow(f_scores, vmin=0, vmax=1, interpolation='nearest', cmap=cmap)
-    plt.colorbar(label='F0.5 score')
-
-    plt.savefig(filename.replace('.pkl', '.svg'))
-    plt.gca().set_yticks(np.arange(len(segmentation_methods)))
-    plt.gca().set_yticklabels(map(lambda x: x.replace('seg_',''), segmentation_methods))
-    plt.gca().set_xticks(np.arange(len(selection_methods)))
-    plt.gca().set_xticklabels(map(lambda x: x.replace('sel_',''), selection_methods))#, rotation='vertical')
-    #plt.setp(plt.gca().get_xticklabels(), rotation='vertical')
-    plt.show()
-
-def display_experiment_segmentation2(filename):
-
-    with open(filename,'rb') as f:
-        results = pickle.load(f)
-
-    dataset_name = 'seattle_runs'
-
-    plt.figure()
-    plt.hold(True)
-
-    segmentation_methods = ['seg_max', 'seg_max_smooth', 'seg_simple_cut', 'seg_edge_cut']
-    selection_methods = ['sel_all', 'sel_largest', 'sel_max_smooth']
-
-    colors = scheme_dark2
-    markers = ['^','o', '*']
-
-    for i, segmentation_method in enumerate(segmentation_methods):
-        for j, selection_method in enumerate(selection_methods):
-            model_name = segmentation_method + '_' + selection_method
-            recall = np.mean(results[model_name]['recalls'][dataset_name])
-            precision = np.mean(results[model_name]['precisions'][dataset_name])
-
-            if markers[j] == '*':
-                markersize = 15
-            else:
-                markersize = 10
-            plt.plot(recall, precision, color='k', markeredgecolor='k', marker=markers[j], markersize=markersize, label=model_name)
-
-    plt.axis('scaled')
-    plt.axis([0.4,0.7,0.5,0.8])
-    plt.xticks(np.arange(0.4,0.8,0.1))
-    plt.yticks(np.arange(0.5,0.9,0.1))
-
-    plt.xlabel('Recall')
-    plt.ylabel('Precision')
-
-    #plt.gca().set_ylabel('F_0.5 score')
-    #plt.gca().set_xticks(range(3))
-    #plt.gca().set_xticklabels(('Training (Berlin)', 'Runs (Berlin)', 'Runs (Seattle)'))
-
-    plt.legend(loc='lower left')
-
-    plt.savefig(filename.replace('.pkl', '.svg'))
-
-    plt.show()
-
-def experiment_reseg_and_postproc(datasets, results_path):
-
-    path = os.path.join(results_path, 'experiment_reseg_and_postproc/')
-
-    print('Starting experiment resegmentation and postprocess ...')
-    time_string = time.strftime("%Y-%m-%d_%H-%M")
-
-    rf_params = {'use_features':['color', 'edge', 'miss3D', 'height3D', 'height2D', 'dist2shelf'],
-         'segmentation_method':"max_smooth", 'selection_method': "max_smooth",
-         'make_convex':False, 'do_shrinking_resegmentation':False, 'do_greedy_resegmentation':False}
-
-    results = dict()
-
-    for make_convex in [True, False]:
-        for do_shrinking_resegmentation in [True, False]:
-            for do_greedy_resegmentation in [True, False]:
-                rf_params['make_convex'] = make_convex
-                rf_params['do_shrinking_resegmentation'] = do_shrinking_resegmentation
-                rf_params['do_greedy_resegmentation'] = do_greedy_resegmentation
-
-                rf = ProbabilisticSegmentationBP(**rf_params)
-                name = "use"
-                if make_convex:
-                    name += "_convex"
-                if do_shrinking_resegmentation:
-                    name += "_shrinking"
-                if do_greedy_resegmentation:
-                    name += "_greedy"
-
-                print(name)
-
-                results[name] = train_and_evaluate(rf, datasets['berlin_selected'],
-                    {name: datasets[name] for name in ['berlin_selected','berlin_runs', 'seattle_runs']})
-
-                with open(os.path.join(results_path, path+time_string+'.pkl'), 'wb') as f:
-                    pickle.dump(results, f, 2)
-
-def display_experiment_reseg_and_postproc2(filenames):
-
-    results = dict()
-    for filename in filenames:
-        with open(filename,'rb') as f:
-            results.update(pickle.load(f))
-
-    dataset_name = 'seattle_runs'
-
-    model_names = results.keys()
-    print(model_names)
-
-    recalls = np.zeros((4,3))
-    precisions = np.zeros((4,3))
-    f_scores = np.zeros((4,3))
-
-    for convex in range(2):
-        for shrinking in range(2):
-            for greedy in range(2):
-                color = scheme_dark2[6] if greedy else (0.0,0.0,0.0)
-                marker = 'h' if convex else '*' # or 'H'
-                facecolor = color if shrinking else (1.0,1.0,1.0)
-
-                model_name = 'use'
-                if convex:
-                    model_name += '_convex'
-                if shrinking:
-                    model_name += '_shrinking'
-                if greedy:
-                    model_name += '_greedy'
-
-
-                recall = np.mean(results[model_name]['recalls'][dataset_name])
-                precision = np.mean(results[model_name]['precisions'][dataset_name])
-
-                print(model_name + " {:.2} {:.2}".format(recall, precision))
-
-                if marker == "*":
-                    markersize = 15
-                else:
-                    markersize = 10
-                plt.plot(recall, precision, markeredgecolor=color, markerfacecolor=facecolor,  marker=marker, markersize=markersize, mew=2)
-
-    plt.axis('scaled')
-    plt.axis([0.55,0.75,0.62,0.82])
-    #plt.xticks(np.arange(0.4,0.8,0.1))
-    #plt.yticks(np.arange(0.5,0.9,0.1))
-
-    plt.xlabel('Recall')
-    plt.ylabel('Precision')
-
-    #plt.gca().set_ylabel('F_0.5 score')
-    #plt.gca().set_xticks(range(3))
-    #plt.gca().set_xticklabels(('Training (Berlin)', 'Runs (Berlin)', 'Runs (Seattle)'))
-
-    plt.legend(loc='lower left')
-
-    plt.savefig(filename.replace('.pkl', '.svg'))
-
-    plt.show()
-
-def display_experiment_reseg_and_postproc(filename):
-
-    with open(filename,'rb') as f:
-        results = pickle.load(f)
-
-    #dataset_names = ['berlin_selected', 'berlin_runs', 'seattle_runs']
-    #dataset_names = ['training_berlin_and_seattle', 'berlin_runs', 'seattle_runs_b']
-    dataset_names = ['seattle_runs']
-
-    cmap = plt.get_cmap('coolwarm_r')
-    #plt.ion()
-    plt.figure()
-    plt.hold(True)
-    model_names = sorted(results.keys())
-    colors = dict()
-    i = 0
-    for model_name in model_names:
-        if model_name == "mrf":
-            colors[model_name] = 'g'
-        else:
-            colors[model_name] = cmap(float(i)/(len(model_names)-1))
-            i += 1
-
-    for i, model_name in enumerate(model_names):
-
-        recalls = [np.mean(results[model_name]['recalls'][dataset_name]) for dataset_name in dataset_names]
-        precisions = [np.mean(results[model_name]['precisions'][dataset_name]) for dataset_name in dataset_names]
-        plt.plot(recalls, precisions, '-', color=colors[model_name], label=model_name)
-        plt.plot(recalls[-1], precisions[-1], 'ok', color=colors[model_name])
-
-    plt.legend()
-    plt.axis([0,1,0,1])
-
-    #plt.gca().set_ylabel('F_0.5 score')
-    #plt.gca().set_xticks(range(3))
-    #plt.gca().set_xticklabels(('Training (Berlin)', 'Runs (Berlin)', 'Runs (Seattle)'))
-
-    plt.legend(loc='lower right')
-
-    plt.savefig(filename.replace('.pkl', '.svg'))
-
-    plt.show()
+    return filename_results
 
 def display_experiment_objects(filename):
-
-    #filename = '/home/rico/PHD/2015/workspace/catkin_ws/src/object_recognition/data/experiment_results/experiment_optimal/2015-09-07_10-50.pkl'
 
     object_names = ["champion_copper_plus_spark_plug", "kyjen_squeakin_eggs_plush_puppies", "cheezit_big_original",
                       "laugh_out_loud_joke_book", "crayola_64_ct", "mark_twain_huckleberry_finn", "mead_index_cards",
@@ -724,7 +240,7 @@ def display_experiment_objects(filename):
         results = pickle.load(f)
 
     # only use first mode to compute the statistics
-    results = results['Our method']
+    results = results['our_method']
 
     # initialize object statistics
     object_statistics = dict()
@@ -788,7 +304,6 @@ def display_experiment_objects(filename):
     for number in range(1,4):
         recall = np.mean(object_statistics[number]['recalls'])
         precision = np.mean(object_statistics[number]['precisions'])
-        print(number, len(object_statistics[number]['recalls']))
         recalls.append(recall)
         precisions.append(precision)
         f = f_score(precision, recall, 0.5)
@@ -810,13 +325,93 @@ def display_experiment_objects(filename):
 
     plt.show()
 
+# 3) Increasing the Number of Objects per Bin
+
+def experiment_candidates(datasets, results_path):
+
+    path = os.path.join(results_path, 'experiment_candidates/')
+    if not os.path.isdir(path):
+        os.makedirs(path)
+
+    print('Starting experiment_candidates ...')
+
+    time_string = time.strftime("%Y-%m-%d_%H-%M")
+    filename_results = os.path.join(path,time_string+'.pkl')
+
+    params = {'use_features':['color', 'height2D', 'edge', 'miss3D', 'height3D', 'dist2shelf'], # 'height2D''edge'
+         'segmentation_method':"max_smooth", 'selection_method': "max_smooth",
+         'make_convex':True, 'do_shrinking_resegmentation':True, 'do_greedy_resegmentation':True}
+
+    methods = {
+            'our_method': ProbabilisticSegmentationBP(**params),
+    }
+
+    results = dict()
+
+    for method_name, method in methods.iteritems():
+
+        for i in range(0,21):
+
+            name  = method_name + repr(i)
+            print(name)
+
+            results[name] = train_and_evaluate(method, datasets['berlin_selected'],
+                {n: datasets[n] for n in ['berlin_selected','berlin_runs', 'seattle_runs']}, add_candidate_objects=i)
+
+            with open(filename_results, 'wb') as f:
+                pickle.dump(results, f, 2)
+
+    return filename_results
+
+def display_experiment_candidates(filename):
+
+    results = dict()
+    with open(filename,'rb') as f:
+        results.update(pickle.load(f))
+
+    dataset_names = ['berlin_selected', 'berlin_runs', 'seattle_runs']
+
+    model_names = ['our_method'+repr(i) for i in range(len(results.keys()))]
+    print(model_names)
+
+    plt.figure()
+    plt.hold(True)
+
+    for dataset_name in ['seattle_runs']:
+        recalls = []
+        precisions = []
+        f_scores = []
+        for i, model_name in enumerate(model_names):
+
+            recalls.append(np.mean(results[model_name]['recalls'][dataset_name]))
+            precisions.append(np.mean(results[model_name]['precisions'][dataset_name]))
+            f_scores.append(f_score(precisions[-1], recalls[-1], beta=0.5))
+
+        plt.plot(recalls, label='Recall', color=scheme_dark2[0])
+        plt.plot(precisions, label='Precision', color=scheme_dark2[1])
+        plt.plot(f_scores, label='F0.5 score', color=scheme_dark2[2])
+
+    plt.axis([0,20,0,0.8])
+    plt.xlabel('# added candidate objects')
+
+    plt.legend(loc='lower left')
+
+    plt.savefig(filename.replace('.pkl', '.svg'))
+
+    plt.show()
+
+# B. Comparison to CRF
 
 def experiment_baseline(datasets, results_path):
 
-    path = os.path.join(results_path, 'experiment_baseline/')
-    time_string = time.strftime("%Y-%m-%d_%H-%M")
-
     print('Starting experiment_model ...')
+
+    path = os.path.join(results_path, 'experiment_baseline/')
+    if not os.path.isdir(path):
+        os.makedirs(path)
+
+    time_string = time.strftime("%Y-%m-%d_%H-%M")
+    filename_results = os.path.join(path,time_string+'.pkl')
 
     params_our_method = {'use_features':['color', 'height2D', 'edge', 'miss3D', 'height3D', 'dist2shelf'],
          'segmentation_method':"max_smooth", 'selection_method': "max_smooth",
@@ -826,37 +421,36 @@ def experiment_baseline(datasets, results_path):
          'segmentation_method':"simple_cut", 'selection_method': "largest",
          'make_convex':False, 'do_shrinking_resegmentation':False, 'do_greedy_resegmentation':False}
 
-    rfs = {
+    methods = {
             'Our method': ProbabilisticSegmentationBP(**params_our_method),
             'CRF RGB-D (0.00)': ProbabilisticSegmentationRF({'n_estimators':100, 'min_weight_fraction_leaf':0.0}, lazy=False, **params_baseline_rgbd),
             'CRF RGB-D (0.005)': ProbabilisticSegmentationRF({'n_estimators':100, 'min_weight_fraction_leaf':0.005}, lazy=False, **params_baseline_rgbd),
             'CRF RGB-D (0.01)': ProbabilisticSegmentationRF({'n_estimators':100, 'min_weight_fraction_leaf':0.01},lazy=False, **params_baseline_rgbd),
             'CRF RGB-D (0.02)': ProbabilisticSegmentationRF({'n_estimators':100, 'min_weight_fraction_leaf':0.02},lazy=False, **params_baseline_rgbd),
             'CRF RGB-D (0.04)': ProbabilisticSegmentationRF({'n_estimators':100, 'min_weight_fraction_leaf':0.04},lazy=False, **params_baseline_rgbd),
-            'CRF RGB-D (0.08)': ProbabilisticSegmentationRF({'n_estimators':100, 'min_weight_fraction_leaf':0.08},lazy=False, **params_baseline_rgbd),
-            'CRF RGB-D (0.00) lazy': ProbabilisticSegmentationRF({'n_estimators':100, 'min_weight_fraction_leaf':0.0}, lazy=True, **params_baseline_rgbd),
-            'CRF RGB-D (0.005) lazy': ProbabilisticSegmentationRF({'n_estimators':100, 'min_weight_fraction_leaf':0.005}, lazy=True, **params_baseline_rgbd),
-            'CRF RGB-D (0.01) lazy': ProbabilisticSegmentationRF({'n_estimators':100, 'min_weight_fraction_leaf':0.01},lazy=True, **params_baseline_rgbd),
-            'CRF RGB-D (0.02) lazy': ProbabilisticSegmentationRF({'n_estimators':100, 'min_weight_fraction_leaf':0.02},lazy=True, **params_baseline_rgbd),
-            'CRF RGB-D (0.04) lazy': ProbabilisticSegmentationRF({'n_estimators':100, 'min_weight_fraction_leaf':0.04},lazy=True, **params_baseline_rgbd),
-            'CRF RGB-D (0.08) lazy': ProbabilisticSegmentationRF({'n_estimators':100, 'min_weight_fraction_leaf':0.08},lazy=True, **params_baseline_rgbd)
-            #'CRF_(HSV-D)': CRF({'n_estimators':100, 'min_weight_fraction_leaf':0.01}, **params_baseline_hsvd),
+            'CRF RGB-D (0.08)': ProbabilisticSegmentationRF({'n_estimators':100, 'min_weight_fraction_leaf':0.08},lazy=False, **params_baseline_rgbd)
+            #'CRF RGB-D (0.00) lazy': ProbabilisticSegmentationRF({'n_estimators':100, 'min_weight_fraction_leaf':0.0}, lazy=True, **params_baseline_rgbd),
+            #'CRF RGB-D (0.005) lazy': ProbabilisticSegmentationRF({'n_estimators':100, 'min_weight_fraction_leaf':0.005}, lazy=True, **params_baseline_rgbd),
+            #'CRF RGB-D (0.01) lazy': ProbabilisticSegmentationRF({'n_estimators':100, 'min_weight_fraction_leaf':0.01},lazy=True, **params_baseline_rgbd),
+            #'CRF RGB-D (0.02) lazy': ProbabilisticSegmentationRF({'n_estimators':100, 'min_weight_fraction_leaf':0.02},lazy=True, **params_baseline_rgbd),
+            #'CRF RGB-D (0.04) lazy': ProbabilisticSegmentationRF({'n_estimators':100, 'min_weight_fraction_leaf':0.04},lazy=True, **params_baseline_rgbd),
+            #'CRF RGB-D (0.08) lazy': ProbabilisticSegmentationRF({'n_estimators':100, 'min_weight_fraction_leaf':0.08},lazy=True, **params_baseline_rgbd)
         }
-
-    datasets['training_berlin_and_seattle'] = combine_datasets([datasets['berlin_selected'], datasets['berlin_runs'], datasets['seattle_runs']])
 
     results = dict()
 
-    for rf_name, rf in rfs.iteritems():
+    for method_name, rf in methods.iteritems():
 
-        print(rf_name)
+        print(method_name)
 
-        results[rf_name] = train_and_evaluate(rf, datasets['berlin_selected'],
+        results[method_name] = train_and_evaluate(rf, datasets['berlin_selected'],
             {name: datasets[name] for name in ['berlin_selected', 'berlin_runs', 'seattle_runs', 'seattle_test']},
-             show_images=False, save_image_path=path+rf_name+'_')
+             show_images=False, save_image_path=path+method_name+'_')
 
-        with open(os.path.join(results_path, path+time_string+'.pkl'), 'wb') as f:
+        with open(filename_results, 'wb') as f:
             pickle.dump(results, f, 2)
+
+    return filename_results
 
 def display_experiment_baseline(filename):
 
@@ -864,24 +458,13 @@ def display_experiment_baseline(filename):
     with open(filename,'rb') as f:
         results = pickle.load(f)
 
-    #dataset_names = ['berlin_selected', 'berlin_runs', 'seattle_runs']
     dataset_names = ['berlin_selected', 'berlin_runs', 'seattle_runs', 'seattle_test']
-
-
-    #results['CRF RGB-D (0.005)'] = results['CRF (RGB-D)']
-    #results['CRF RGB-D (0.01)'] = results['CRF (RGB-D)']
-    #results['CRF RGB-D (0.02)'] = results['CRF (RGB-D)']
-    #results['CRF RGB-D (0.04)'] = results['CRF (RGB-D)']
 
     model_names = ['CRF RGB-D (0.00)', 'CRF RGB-D (0.005)', 'CRF RGB-D (0.01)', 'CRF RGB-D (0.02)', 'CRF RGB-D (0.04)', 'Our method']
     colors = {'CRF RGB-D (0.00)': 1.1*scheme_dark2[5], 'CRF RGB-D (0.005)': 0.95*scheme_dark2[5], 'CRF RGB-D (0.01)': 0.8*scheme_dark2[5], 'CRF RGB-D (0.02)': 0.65*scheme_dark2[5], 'CRF RGB-D (0.04)': 0.5*scheme_dark2[5], 'Our method': scheme_dark2[4]}
 
     #model_names = ['CRF RGB-D (0.00) lazy', 'CRF RGB-D (0.005) lazy', 'CRF RGB-D (0.01) lazy', 'CRF RGB-D (0.02) lazy', 'CRF RGB-D (0.04) lazy', 'Our method']
     #colors = {'CRF RGB-D (0.00) lazy': 1.1*scheme_dark2[5], 'CRF RGB-D (0.005) lazy': 0.95*scheme_dark2[5], 'CRF RGB-D (0.01) lazy': 0.8*scheme_dark2[5], 'CRF RGB-D (0.02) lazy': 0.65*scheme_dark2[5], 'CRF RGB-D (0.04) lazy': 0.5*scheme_dark2[5], 'Our method': scheme_dark2[4]}
-
-
-    #colors = {'our method': scheme_dark2[4], 'CRF (RGB-D)': 1.1*scheme_dark2[5]}
-
 
     plt.figure()
     plt.hold(True)
@@ -905,154 +488,88 @@ def display_experiment_baseline(filename):
 
     plt.show()
 
+
+# C. Variants of the Algorithm
+# 1) Changing Features
+
 def experiment_single_features(datasets, results_path):
-
-    time_string = time.strftime("%Y-%m-%d_%H-%M")
-
-    path = os.path.join(results_path, 'experiment_single_features/')
 
     print('Starting experiment_model ...')
 
+    path = os.path.join(results_path, 'experiment_single_features/')
+    if not os.path.isdir(path):
+        os.makedirs(path)
+
+    time_string = time.strftime("%Y-%m-%d_%H-%M")
+    filename_results = os.path.join(path,time_string+'.pkl')
+
     all_features = ['color', 'edge', 'miss3D', 'height2D', 'height3D', 'dist2shelf']
-    rf_params = {'use_features':all_features,
+    params = {'use_features':all_features,
          'segmentation_method':"max_smooth", 'selection_method': "max_smooth",
          'make_convex':True, 'do_shrinking_resegmentation':True, 'do_greedy_resegmentation':True}
 
-    rf_param_dict = dict()
+    param_dict = dict()
     for feature_name in all_features:
-        rf_param_dict[feature_name] = copy.deepcopy(rf_params)
-        rf_param_dict[feature_name]['use_features'] = [feature_name]
+        param_dict[feature_name] = copy.deepcopy(params)
+        param_dict[feature_name]['use_features'] = [feature_name]
 
-    rfs = {'only_'+feature_name: ProbabilisticSegmentationBP(**rf_param_dict[feature_name]) for feature_name in all_features}
-    rfs['all'] = ProbabilisticSegmentationBP(**rf_params)
-
-    datasets['training_berlin_and_seattle'] = combine_datasets([datasets['berlin_selected'], datasets['seattle_runs']])
+    methods = {'only_'+feature_name: ProbabilisticSegmentationBP(**param_dict[feature_name]) for feature_name in all_features}
+    methods['all'] = ProbabilisticSegmentationBP(**params)
 
     results = dict()
 
-    for rf_name, rf in rfs.iteritems():
+    for method_name, method in methods.iteritems():
 
-        print(rf_name)
+        print(method_name)
 
-        results[rf_name] = train_and_evaluate(rf, datasets['berlin_selected'],
+        results[method_name] = train_and_evaluate(method, datasets['berlin_selected'],
             {name: datasets[name] for name in ['berlin_selected', 'berlin_runs', 'seattle_runs']})
 
-        with open(os.path.join(results_path, path+time_string+'.pkl'), 'wb') as f:
+        with open(filename_results, 'wb') as f:
             pickle.dump(results, f, 2)
+
+    return filename_results
 
 def experiment_removed_features(datasets, results_path):
 
-    time_string = time.strftime("%Y-%m-%d_%H-%M")
+    print('Starting experiment_model ...')
 
     path = os.path.join(results_path, 'experiment_removed_features/')
+    if not os.path.isdir(path):
+        os.makedirs(path)
 
-    print('Starting experiment_model ...')
+    time_string = time.strftime("%Y-%m-%d_%H-%M")
+    filename_results = os.path.join(path,time_string+'.pkl')
 
     all_features = ['color', 'edge', 'miss3D', 'height2D', 'height3D', 'dist2shelf']
 
-    rf_params = {'use_features':all_features,
+    params = {'use_features':all_features,
          'segmentation_method':"max_smooth", 'selection_method': "max_smooth",
          'make_convex':True, 'do_shrinking_resegmentation':True, 'do_greedy_resegmentation':True}
 
-    rf_param_dict = dict()
+    param_dict = dict()
     for feature_name in all_features:
-        rf_param_dict[feature_name] = copy.deepcopy(rf_params)
-        rf_param_dict[feature_name]['use_features'] = [n for n in all_features if n != feature_name]
+        param_dict[feature_name] = copy.deepcopy(params)
+        param_dict[feature_name]['use_features'] = [n for n in all_features if n != feature_name]
 
-    rfs = {'all_except_'+feature_name: ProbabilisticSegmentationBP(**rf_param_dict[feature_name]) for feature_name in all_features}
-    rfs['all'] = ProbabilisticSegmentationBP(**rf_params)
-
-    #datasets['training_berlin_and_seattle'] = combine_datasets([datasets['berlin_selected'], datasets['seattle_runs']])
+    methods = {'all_except_'+feature_name: ProbabilisticSegmentationBP(**param_dict[feature_name]) for feature_name in all_features}
+    methods['all'] = ProbabilisticSegmentationBP(**params)
 
     results = dict()
 
-    for rf_name, rf in rfs.iteritems():
+    for method_name, method in methods.iteritems():
 
-        print(rf_name)
+        print(method_name)
 
-        results[rf_name] = train_and_evaluate(rf, datasets['berlin_selected'],
+        results[method_name] = train_and_evaluate(method, datasets['berlin_selected'],
             {name: datasets[name] for name in ['berlin_selected', 'berlin_runs', 'seattle_runs']})
 
-        with open(os.path.join(results_path, path+time_string+'.pkl'), 'wb') as f:
+        with open(filename_results, 'wb') as f:
             pickle.dump(results, f, 2)
 
-def experiment_data(datasets, results_path):
-
-    time_string = time.strftime("%Y-%m-%d_%H-%M")
-
-    path = os.path.join(results_path, 'experiment_data/')
-
-    print('Starting experiment_data ...')
-
-    rf_params = {'use_features':['color', 'edge', 'miss3D', 'height3D', 'height2D', 'dist2shelf'],
-         'segmentation_method':"max_smooth", 'selection_method': "max_smooth",
-         'make_convex':True, 'do_shrinking_resegmentation':True, 'do_greedy_resegmentation':True}
-
-    for i in range(5):
-        datasets['seattle_runs_except_{}'.format(i+1)] = combine_datasets([datasets["seattle_runs/"+str(j+1)] for j in range(5) if j != i])
-
-    rf = ProbabilisticSegmentationBP(**rf_params)
-
-    results = dict()
-
-    for training_set_name in ['berlin_selected', 'berlin_samples', '']:
-
-        if training_set_name != '':
-            print(training_set_name)
-            results[training_set_name] = train_and_evaluate(rf, datasets[training_set_name],
-                {name: datasets[name] for name in ['berlin_runs', 'seattle_runs']})
-
-        # leave one out on seattle data
-
-        training_set_name_extended = training_set_name + '_and_seattle'
-        print(training_set_name_extended)
-
-        # manually prepare the results dict, to later fill it step by step
-        results[training_set_name_extended] = dict()
-        for measure in ['recalls', 'precisions']:
-            results[training_set_name_extended][measure] = dict()
-            for test_name in ['berlin_runs', 'seattle_runs']:
-                results[training_set_name_extended][measure][test_name] = []
-
-        for i in range(1,6):
-            dataset = datasets['seattle_runs_except_{}'.format(i)]
-            if training_set_name != '':
-                dataset = combine_datasets([datasets[training_set_name], dataset])
-            tmp_result = train_and_evaluate(rf, dataset, {name: datasets[name] for name in ['berlin_runs', 'seattle_runs/{}'.format(i)]})
-            for measure in ['precisions', 'recalls']:
-                results[training_set_name_extended][measure]['berlin_runs'].append(tmp_result[measure]['berlin_runs'])
-                results[training_set_name_extended][measure]['seattle_runs'].append(tmp_result[measure]['seattle_runs/{}'.format(i)])
-
-    rf = ProbabilisticSegmentationBP(seattle_data_just_for_color=True, **rf_params)
-
-    for training_set_name in ['berlin_selected', 'berlin_samples']:
-
-        # leave one out on seattle data
-
-        training_set_name_extended = training_set_name + '_and_seattle_only_color'
-        print(training_set_name_extended)
-
-        # manually prepare the results dict, to later fill it step by step
-        results[training_set_name_extended] = dict()
-        for measure in ['recalls', 'precisions']:
-            results[training_set_name_extended][measure] = dict()
-            for test_name in ['berlin_runs', 'seattle_runs']:
-                results[training_set_name_extended][measure][test_name] = []
-
-        for i in range(1,6):
-            dataset = datasets['seattle_runs_except_{}'.format(i)]
-            dataset = combine_datasets([datasets[training_set_name], dataset])
-            tmp_result = train_and_evaluate(rf, dataset, {name: datasets[name] for name in ['berlin_runs', 'seattle_runs/{}'.format(i)]})
-            for measure in ['precisions', 'recalls']:
-                results[training_set_name_extended][measure]['berlin_runs'].append(tmp_result[measure]['berlin_runs'])
-                results[training_set_name_extended][measure]['seattle_runs'].append(tmp_result[measure]['seattle_runs/{}'.format(i)])
-
-    with open(os.path.join(results_path, path+time_string+'.pkl'), 'wb') as f:
-        pickle.dump(results, f, 2)
+    return filename_results
 
 def display_experiment_features(filenames):
-
-    #filenames = ['2015-09-05_15-27.pkl']
 
     import cPickle as pickle
 
@@ -1060,7 +577,6 @@ def display_experiment_features(filenames):
     for filename in filenames:
         with open(filename,'rb') as f:
             results.update(pickle.load(f))
-
 
     model_names = sorted(results.keys())
     #dataset_names = sorted(results[model_names[0]]['recalls'].keys())
@@ -1141,6 +657,311 @@ def display_experiment_features(filenames):
 
     plt.savefig(filename.replace('.pkl', '.svg'))
 
+# 2) Pixel Labeling and Selection
+
+def experiment_segmentation(datasets, results_path):
+
+    print('Starting experiment_segmentation ...')
+
+    path = os.path.join(results_path, 'experiment_segmentation/')
+    if not os.path.isdir(path):
+        os.makedirs(path)
+
+    time_string = time.strftime("%Y-%m-%d_%H-%M")
+    filename_results = os.path.join(path,time_string+'.pkl')
+
+    params = {'use_features':['color', 'edge', 'miss3D', 'height3D', 'height2D', 'dist2shelf'],
+         'make_convex':False, 'do_shrinking_resegmentation':False, 'do_greedy_resegmentation':False}
+
+    results = dict()
+
+    for segmentation_method in ["max", "max_smooth", "simple_cut", "edge_cut"]:
+        for selection_method in ["all", "max_smooth", "largest"]:
+            params['segmentation_method'] = segmentation_method
+            params['selection_method'] = selection_method
+            method = ProbabilisticSegmentationBP(**params)
+
+            name = "seg_{}_sel_{}".format(segmentation_method, selection_method)
+            print(name)
+
+            results[name] = train_and_evaluate(method, datasets['berlin_selected'],
+                {name: datasets[name] for name in ['berlin_selected','berlin_runs', 'seattle_runs']})
+
+            with open(filename_results, 'wb') as f:
+                pickle.dump(results, f, 2)
+
+    return filename_results
+
+def display_experiment_segmentation(filename):
+
+    with open(filename,'rb') as f:
+        results = pickle.load(f)
+
+    dataset_name = 'seattle_runs'
+
+    plt.figure()
+    plt.hold(True)
+
+    segmentation_methods = ['seg_max', 'seg_max_smooth', 'seg_simple_cut', 'seg_edge_cut']
+    selection_methods = ['sel_all', 'sel_largest', 'sel_max_smooth']
+
+    colors = scheme_dark2
+    markers = ['^','o', '*']
+
+    for i, segmentation_method in enumerate(segmentation_methods):
+        for j, selection_method in enumerate(selection_methods):
+            model_name = segmentation_method + '_' + selection_method
+            recall = np.mean(results[model_name]['recalls'][dataset_name])
+            precision = np.mean(results[model_name]['precisions'][dataset_name])
+
+            if markers[j] == '*':
+                markersize = 15
+            else:
+                markersize = 10
+            plt.plot(recall, precision, color='k', markeredgecolor='k', marker=markers[j], markersize=markersize, label=model_name)
+
+    plt.axis('scaled')
+    plt.axis([0.4,0.7,0.5,0.8])
+    plt.xticks(np.arange(0.4,0.8,0.1))
+    plt.yticks(np.arange(0.5,0.9,0.1))
+
+    plt.xlabel('Recall')
+    plt.ylabel('Precision')
+
+    #plt.gca().set_ylabel('F_0.5 score')
+    #plt.gca().set_xticks(range(3))
+    #plt.gca().set_xticklabels(('Training (Berlin)', 'Runs (Berlin)', 'Runs (Seattle)'))
+
+    plt.legend(loc='lower left')
+
+    plt.savefig(filename.replace('.pkl', '.svg'))
+
+    plt.show()
+
+# 3) Re-Labeling and Post-Processing
+
+def experiment_reseg_and_postproc(datasets, results_path):
+
+    print('Starting experiment resegmentation and postprocess ...')
+
+    path = os.path.join(results_path, 'experiment_reseg_and_postproc/')
+    if not os.path.isdir(path):
+        os.makedirs(path)
+
+    time_string = time.strftime("%Y-%m-%d_%H-%M")
+    filename_results = os.path.join(path,time_string+'.pkl')
+
+    params = {'use_features':['color', 'edge', 'miss3D', 'height3D', 'height2D', 'dist2shelf'],
+         'segmentation_method':"max_smooth", 'selection_method': "max_smooth",
+         'make_convex':False, 'do_shrinking_resegmentation':False, 'do_greedy_resegmentation':False}
+
+    results = dict()
+
+    for make_convex in [True, False]:
+        for do_shrinking_resegmentation in [True, False]:
+            for do_greedy_resegmentation in [True, False]:
+                params['make_convex'] = make_convex
+                params['do_shrinking_resegmentation'] = do_shrinking_resegmentation
+                params['do_greedy_resegmentation'] = do_greedy_resegmentation
+
+                method = ProbabilisticSegmentationBP(**params)
+                name = "use"
+                if make_convex:
+                    name += "_convex"
+                if do_shrinking_resegmentation:
+                    name += "_shrinking"
+                if do_greedy_resegmentation:
+                    name += "_greedy"
+
+                print(name)
+
+                results[name] = train_and_evaluate(method, datasets['berlin_selected'],
+                    {name: datasets[name] for name in ['berlin_selected','berlin_runs', 'seattle_runs']})
+
+                with open(filename_results, 'wb') as f:
+                    pickle.dump(results, f, 2)
+
+    return filename_results
+
+def display_experiment_reseg_and_postproc(filename):
+
+    results = dict()
+    with open(filename,'rb') as f:
+        results.update(pickle.load(f))
+
+    dataset_name = 'seattle_runs'
+
+    model_names = results.keys()
+    print(model_names)
+
+    recalls = np.zeros((4,3))
+    precisions = np.zeros((4,3))
+    f_scores = np.zeros((4,3))
+
+    for convex in range(2):
+        for shrinking in range(2):
+            for greedy in range(2):
+                color = scheme_dark2[6] if greedy else (0.0,0.0,0.0)
+                marker = 'h' if convex else '*' # or 'H'
+                facecolor = color if shrinking else (1.0,1.0,1.0)
+
+                model_name = 'use'
+                if convex:
+                    model_name += '_convex'
+                if shrinking:
+                    model_name += '_shrinking'
+                if greedy:
+                    model_name += '_greedy'
+
+
+                recall = np.mean(results[model_name]['recalls'][dataset_name])
+                precision = np.mean(results[model_name]['precisions'][dataset_name])
+
+                print(model_name + " {:.2} {:.2}".format(recall, precision))
+
+                if marker == "*":
+                    markersize = 15
+                else:
+                    markersize = 10
+                plt.plot(recall, precision, linewidth=0, markeredgecolor=color, markerfacecolor=facecolor,  marker=marker, markersize=markersize, mew=2, label=model_name)
+
+    plt.axis('scaled')
+    plt.axis([0.55,0.75,0.62,0.82])
+    #plt.xticks(np.arange(0.4,0.8,0.1))
+    #plt.yticks(np.arange(0.5,0.9,0.1))
+
+    plt.xlabel('Recall')
+    plt.ylabel('Precision')
+
+    #plt.gca().set_ylabel('F_0.5 score')
+    #plt.gca().set_xticks(range(3))
+    #plt.gca().set_xticklabels(('Training (Berlin)', 'Runs (Berlin)', 'Runs (Seattle)'))
+
+    plt.legend(loc='lower left')
+
+    plt.savefig(filename.replace('.pkl', '.svg'))
+
+    plt.show()
+
+def display_experiment_reseg_and_postproc_old(filename):
+
+    with open(filename,'rb') as f:
+        results = pickle.load(f)
+
+    #dataset_names = ['berlin_selected', 'berlin_runs', 'seattle_runs']
+    #dataset_names = ['training_berlin_and_seattle', 'berlin_runs', 'seattle_runs_b']
+    dataset_names = ['seattle_runs']
+
+    cmap = plt.get_cmap('coolwarm_r')
+    #plt.ion()
+    plt.figure()
+    plt.hold(True)
+    model_names = sorted(results.keys())
+    colors = dict()
+    i = 0
+    for model_name in model_names:
+        if model_name == "mrf":
+            colors[model_name] = 'g'
+        else:
+            colors[model_name] = cmap(float(i)/(len(model_names)-1))
+            i += 1
+
+    for i, model_name in enumerate(model_names):
+
+        recalls = [np.mean(results[model_name]['recalls'][dataset_name]) for dataset_name in dataset_names]
+        precisions = [np.mean(results[model_name]['precisions'][dataset_name]) for dataset_name in dataset_names]
+        plt.plot(recalls, precisions, '-', color=colors[model_name], label=model_name)
+        plt.plot(recalls[-1], precisions[-1], 'ok', color=colors[model_name])
+
+    plt.legend()
+    plt.axis([0,1,0,1])
+
+    #plt.gca().set_ylabel('F_0.5 score')
+    #plt.gca().set_xticks(range(3))
+    #plt.gca().set_xticklabels(('Training (Berlin)', 'Runs (Berlin)', 'Runs (Seattle)'))
+
+    plt.legend(loc='lower right')
+
+    plt.savefig(filename.replace('.pkl', '.svg'))
+
+    plt.show()
+
+# 4) Random Forest for Pixel Probability Estimation
+
+def experiment_model(datasets, results_path):
+
+    print('Starting experiment_model ...')
+
+    path = os.path.join(results_path, 'experiment_model/')
+    if not os.path.isdir(path):
+        os.makedirs(path)
+
+    time_string = time.strftime("%Y-%m-%d_%H-%M")
+    filename_results = os.path.join(path,time_string+'.pkl')
+
+    params = {'use_features':['color', 'edge', 'miss3D', 'height3D', 'height2D', 'dist2shelf'],
+         'segmentation_method':"max_smooth", 'selection_method': "max_smooth",
+         'make_convex':True, 'do_shrinking_resegmentation':True, 'do_greedy_resegmentation':True}
+
+    methods = {
+            'our_method': ProbabilisticSegmentationBP(**params),
+            'rf_.000_lazy': ProbabilisticSegmentationRF({'n_estimators':100, 'min_weight_fraction_leaf':0.0}, **params),
+            'rf_.005_lazy': ProbabilisticSegmentationRF({'n_estimators':100, 'min_weight_fraction_leaf':0.005}, **params),
+            'rf_.010_lazy': ProbabilisticSegmentationRF({'n_estimators':100, 'min_weight_fraction_leaf':0.01}, **params),
+            'rf_.020_lazy': ProbabilisticSegmentationRF({'n_estimators':100, 'min_weight_fraction_leaf':0.02}, **params),
+            'rf_.040_lazy': ProbabilisticSegmentationRF({'n_estimators':100, 'min_weight_fraction_leaf':0.04}, **params),
+        }
+
+    results = dict()
+
+    for method_name, method in methods.iteritems():
+
+        print(method_name)
+
+        results[method_name] = train_and_evaluate(method, datasets['berlin_selected'],
+            {name: datasets[name] for name in ['berlin_selected','berlin_runs', 'seattle_runs', 'seattle_test']}, withhold_object_info=False)
+
+        with open(filename_results, 'wb') as f:
+            pickle.dump(results, f, 2)
+
+    return filename_results
+
+def display_experiment_model(filename):
+
+    import cPickle as pickle
+    with open(filename,'rb') as f:
+        results = pickle.load(f)
+
+    dataset_names = ['berlin_selected', 'berlin_runs', 'seattle_runs', 'seattle_test']
+
+    print(results.keys())
+
+    model_names = ['rf_.000_lazy', 'rf_.005_lazy', 'rf_.010_lazy', 'rf_.020_lazy', 'rf_.040_lazy', 'our_method']
+    colors = {'rf_.000_lazy': 1.1*scheme_dark2[5], 'rf_.005_lazy': 0.95*scheme_dark2[5], 'rf_.010_lazy': 0.8*scheme_dark2[5], 'rf_.020_lazy': 0.65*scheme_dark2[5], 'rf_.040_lazy': 0.5*scheme_dark2[5], 'our_method': scheme_dark2[4]}
+
+    plt.figure()
+    plt.hold(True)
+    width_all = 0.8
+    width_bar_rel = 0.9
+    width_bar = width_all/len(model_names)
+    x = np.arange(len(dataset_names)) - width_all/2
+    for i, model_name in enumerate(model_names):
+        recalls = [np.mean(results[model_name]['recalls'][dataset_name]) for dataset_name in dataset_names]
+        precisions = [np.mean(results[model_name]['precisions'][dataset_name]) for dataset_name in dataset_names]
+        f_scores = [f_score(precision, recall, beta=0.5) for precision, recall in zip(precisions, recalls)]
+        plt.bar(x + i*width_bar, f_scores, width=width_bar*width_bar_rel, label=model_name.replace('mrf', 'Our method'), color=colors[model_name], linewidth=0)
+
+    plt.gca().set_ylabel('F0.5 score')
+    plt.gca().set_xticks(range(len(dataset_names)))
+    plt.gca().set_xticklabels(('Training (Berlin)', 'Test (Berlin)', 'Test (Seattle)', 'APC (Seattle)'))
+
+    plt.legend(loc='lower left')
+
+    plt.savefig(filename.replace('.pkl', '.svg'))
+
+    plt.show()
+
+
 global path
 
 if __name__ == "__main__":
@@ -1157,65 +978,57 @@ if __name__ == "__main__":
     dataset_names = ["berlin_runs/"+str(i+1) for i in range(3)] + ["berlin_samples", "berlin_selected"] \
                     + ["seattle_runs/"+str(i+1) for i in range(5)] + ["seattle_test"]
 
-
     #datasets = compute_datasets(dataset_names, dataset_path, cache_path)
     datasets = load_datasets(dataset_names, dataset_path, cache_path)
 
     datasets['berlin_runs'] = combine_datasets([datasets["berlin_runs/"+str(i+1)] for i in range(3)])
     datasets['seattle_runs'] = combine_datasets([datasets["seattle_runs/"+str(i+1)] for i in range(5)])
 
-    # VIZUALIZE A DATASET
-
+    # vizualize the dataset
     #plt.ion()
     #datasets['seattle_test'].visualize_dataset()
 
     # A. Performance Evaluation
     # 1) Performance in the Amazon Picking Challenge
 
-    experiment_APC(datasets, results_path)
+    experiment_APC(datasets, results_path) # segmentation results are written to data/experiment_APC/...
 
     # 2) Performance by Object
 
+    filename_results = experiment_our_method(datasets, results_path)
+    display_experiment_objects(filename_results)
+
     # 3) Increasing the Number of Objects per Bin
 
-    # B Comparison to CRF
+    filename_results = experiment_candidates(datasets, results_path)
+    display_experiment_candidates(filename_results)
+
+    # B. Comparison to CRF
+
+    filename_results = experiment_baseline(datasets, results_path)
+    display_experiment_baseline(filename_results)
 
     # C. Variants of the Algorithm
     # 1) Changing Features
+
+    filename_result = []
+    filename_result.append(experiment_single_features(datasets, results_path))
+    filename_result.append(experiment_removed_features(datasets, results_path))
+    display_experiment_features(filename_result)
+
     # 2) Pixel Labeling and Selection
+
+    filename_results = experiment_segmentation(datasets, results_path)
+    display_experiment_segmentation(filename_results)
+
     # 3) Re-Labeling and Post-Processing
 
+    filename_results = experiment_reseg_and_postproc(datasets, results_path)
+    display_experiment_reseg_and_postproc(filename_results)
 
+    # 4) Random Forest for Pixel Probability Estimation
 
-    #experiment_baseline(datasets, results_path)
-    #display_experiment_baseline('/home/rico/PHD/2015/workspace/catkin_ws/src/object_recognition/data/experiment_results/experiment_baseline/2015-09-09_22-59.pkl')
-    #display_experiment_objects('/home/rico/PHD/2015/workspace/catkin_ws/src/object_recognition/data/experiment_results/experiment_baseline/2015-09-09_22-59.pkl')
-
-    #experiment_single_features(datasets, results_path)
-    #experiment_removed_features(datasets, results_path)
-    #display_experiment_features(['/home/rico/PHD/2015/workspace/catkin_ws/src/object_recognition/data/experiment_results/experiment_removed_features/2015-09-10_11-53.pkl',
-    #                                '/home/rico/PHD/2015/workspace/catkin_ws/src/object_recognition/data/experiment_results/experiment_single_features/2015-09-10_11-52.pkl'])
-
-    #experiment_candidates(datasets, results_path)
-    #display_experiment_candidates(['/home/rico/PHD/2015/workspace/catkin_ws/src/object_recognition/data/experiment_results/experiment_candidates/2015-09-10_15-06.pkl' ,
-    #                               '/home/rico/PHD/2015/workspace/catkin_ws/src/object_recognition/data/experiment_results/experiment_candidates/2015-09-10_16-36.pkl'])
-
-    #experiment_segmentation(datasets, results_path)
-    #display_experiment_segmentation(['/home/rico/PHD/2015/workspace/catkin_ws/src/object_recognition/data/experiment_results/experiment_segmentation/2015-09-10_16-57.pkl'])
-    #display_experiment_segmentation2('/home/rico/PHD/2015/workspace/catkin_ws/src/object_recognition/data/experiment_results/experiment_segmentation/2015-09-10_16-57.pkl')
-
-    #experiment_reseg_and_postproc(datasets, results_path)
-    #display_experiment_reseg_and_postproc2(['/home/rico/PHD/2015/workspace/catkin_ws/src/object_recognition/data/experiment_results/experiment_reseg_and_postproc/2015-09-10_17-54.pkl'])
-
-    #experiment_model(datasets, results_path)
-    #display_experiment_model('/home/rico/PHD/2015/workspace/catkin_ws/src/object_recognition/data/experiment_results/experiment_model/2015-09-10_21-45.pkl')
-
-    #display_experiment_model('/home/rico/PHD/2015/workspace/catkin_ws/src/object_recognition/data/experiment_results/experiment_reseg_and_postproc/2015-09-09_13-57.pkl')
-    #experiment_optimal(datasets, results_path)
-    #display_experiment_optimal('')
-    #display_experiment_model('/home/rico/PHD/2015/workspace/catkin_ws/src/object_recognition/data/experiment_results/experiment_model_0903.pkl')
-    #display_experiment_model('/home/rico/PHD/2015/workspace/catkin_ws/src/object_recognition/data/experiment_results/experiment_segmentation/2015-09-06_13-21.pkl')
-
-    #experiment_samples(datasets, results_path)
+    filename_results = experiment_model(datasets, results_path)
+    display_experiment_model(filename_results)
     
     print('done')

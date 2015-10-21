@@ -6,6 +6,8 @@ DEPENDENCIES
 python, scipy, numpy, matplotlib, opencv, sklearn
 gco graph cut library with python wrapper (https://github.com/amueller/gco_python)
 
-GETTING THE CODE TO RUN
+RUN
 
--> TODO
+The following command reproduces the experiments and plots in the paper (modulo minor editing to improve the readability of the plots):
+
+python main.py

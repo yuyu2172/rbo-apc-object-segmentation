@@ -603,48 +603,17 @@ class ProbabilisticSegmentationBP(ProbabilisticSegmentation):
         self.backproject()
         self.apply_bayes_rule()
 
-        path = "/home/rico/PHD/2015/workspace/catkin_ws/src/object_recognition/data/experiment_results/video/"
-
         self.segment_and_all()
 
-        utils.display.set_bin_mask(self.bin_mask)
-        utils.display.plot_image(self.image)
-        plt.savefig(path+'{}_cropped.png'.format(desired_object), bbox_inches = 'tight')
-        utils.display.plot_heat_image(self.posterior_images_smooth[desired_object])
-        plt.savefig(path+'{}_posterior.png'.format(desired_object), bbox_inches = 'tight')
-        utils.display.plot_contours(self.image, [self.contours[self.selected_contours[0]]])
-        plt.savefig(path+'{}_segment.png'.format(desired_object), bbox_inches = 'tight')
-        plt.close('all')
+        #path = "/home/rico/PHD/2015/workspace/catkin_ws/src/object_recognition/data/experiment_results/video/"
+
+        #utils.display.set_bin_mask(self.bin_mask)
+        #utils.display.plot_image(self.image)
+        #plt.savefig(path+'{}_cropped.png'.format(desired_object), bbox_inches = 'tight')
+        #utils.display.plot_heat_image(self.posterior_images_smooth[desired_object])
+        #plt.savefig(path+'{}_posterior.png'.format(desired_object), bbox_inches = 'tight')
+        #utils.display.plot_contours(self.image, [self.contours[self.selected_contours[0]]])
+        #plt.savefig(path+'{}_segment.png'.format(desired_object), bbox_inches = 'tight')
+        #plt.close('all')
 
         return self.segments[desired_object].astype('bool')
-
-#         display.plot_segment(self.image, self.segment_desired)
-#
-#         display.plot_heat_image(self.test_image)
-#         display.plot_heat_image(self.feature_images['edge'])
-#         plt.savefig('/home/rico/Documents/PHD/2015/Presentations/APC Vision/example_edge.png', dpi=300, bbox_inches='tight', pad_inches=0)
-#         display.plot_heat_image(self.feature_images['dist2shelf'], mask=self.has3D_mask)
-#         plt.savefig('/home/rico/Documents/PHD/2015/Presentations/APC Vision/example_dist2shelf.png', dpi=300, bbox_inches='tight', pad_inches=0)
-#         display.plot_heat_image(self.feature_images['height3D'], mask=self.has3D_mask)
-#         plt.savefig('/home/rico/Documents/PHD/2015/Presentations/APC Vision/example_height3D.png', dpi=300, bbox_inches='tight', pad_inches=0)
-#         display.plot_heat_image(self.feature_images['height2D'], mask=self.miss3D_mask)
-#         plt.savefig('/home/rico/Documents/PHD/2015/Presentations/APC Vision/example_height2D.png', dpi=300, bbox_inches='tight', pad_inches=0)
-#         display.plot_heat_image(self.feature_images['miss3D'])
-#         plt.savefig('/home/rico/Documents/PHD/2015/Presentations/APC Vision/example_miss3D.png', dpi=300, bbox_inches='tight', pad_inches=0)
-
-#         display.plot_image(self.image)
-#         plt.savefig('/home/rico/Documents/PHD/2015/Presentations/APC Vision/example_rgb.png', dpi=300, bbox_inches='tight', pad_inches=0)
-#         display.plot_color_image(self.feature_images['color'])
-#         plt.savefig('/home/rico/Documents/PHD/2015/Presentations/APC Vision/example_color.png', dpi=300, bbox_inches='tight', pad_inches=0)
-#
-#         for o in self.candidate_objects:
-# #             display.plot_color_likelihood(self.color_likelihood[o])
-# #             plt.savefig('/home/rico/Documents/PHD/2015/Presentations/APC Vision/color_likelihood_{}.svg'.format(o), bbox_inches='tight', pad_inches=0)
-# #             display.plot_heat_image(self.likelihood_images['color'][o], title='color likelihood for {}'.format(o), colorbar_label="P(color | object)".format(o), vmin=0, vmax=0.25)
-# #             plt.savefig('/home/rico/Documents/PHD/2015/Presentations/APC Vision/likelihood_image_{}.png'.format(o), dpi=300, bbox_inches='tight', pad_inches=0)
-#             display.plot_heat_image(self.posterior_images[o], title='posterior for {}'.format(o), colorbar_label="P(object | color)".format(o), vmin=0, vmax=1)
-#             plt.savefig('/home/rico/Documents/PHD/2015/Presentations/APC Vision/posterior_image_allfeatures_{}.png'.format(o), dpi=300, bbox_inches='tight', pad_inches=0)
-#         # display.plot_heat_image(self.posterior_images[self.desired_object], title='posterior for {}'.format(self.desired_object), colorbar_label="probability (h | D)")
-#         display.plot_contours(self.image, self.contours)
-#         plt.savefig('/home/rico/Documents/PHD/2015/Presentations/APC Vision/segmentation.png', dpi=300, bbox_inches='tight', pad_inches=0)
-#         plt.savefig('/home/rico/Documents/PHD/2015/Presentations/APC Vision/segment_sticks.png', dpi=300, bbox_inches='tight', pad_inches=0)
