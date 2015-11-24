@@ -175,7 +175,7 @@ def experiment_APC(datasets, results_path, only_berlin_data=False):
         with open(result_file, 'wb') as f:
             pickle.dump(results, f, 2)
 
-    print('segmentation results are written to {}'.format(path))
+    print('Segmentation results are written to {}'.format(path))
 
     return result_file
 
@@ -950,32 +950,34 @@ if __name__ == "__main__":
     datasets['berlin_runs'] = combine_datasets([datasets["berlin_runs/"+str(i+1)] for i in range(3)])
     datasets['seattle_runs'] = combine_datasets([datasets["seattle_runs/"+str(i+1)] for i in range(5)])
 
-    plt.ion()
+    #plt.ion()
 
     # vizualize the dataset
     #datasets['seattle_test'].visualize_dataset()
 
-    print('A. Performance Evaluation')
+    print('\nThis script repeats all experiments from the paper "Probabilistic Object Segmentation for the Amazon Picking Challenge".')
+    print('\nIt may take a while ... :D')
+    print('\nA. Performance Evaluation')
     print('1) Performance in the Amazon Picking Challenge')
 
     experiment_APC(datasets, results_path)
 
-    print('2) Performance by Object')
+    print('\n2) Performance by Object')
 
     filename_results = experiment_our_method(datasets, results_path)
     display_experiment_objects(filename_results)
 
-    print('3) Increasing the Number of Objects per Bin')
+    print('\n3) Increasing the Number of Objects per Bin')
 
     filename_results = experiment_candidates(datasets, results_path)
     display_experiment_candidates(filename_results)
 
-    print('B. Comparison to CRF')
+    print('\nB. Comparison to CRF')
 
     filename_results = experiment_baseline(datasets, results_path)
     display_experiment_baseline(filename_results)
 
-    print('C. Variants of the Algorithm')
+    print('\nC. Variants of the Algorithm')
     print('1) Changing Features')
 
     filename_result = []
@@ -983,19 +985,19 @@ if __name__ == "__main__":
     filename_result.append(experiment_removed_features(datasets, results_path))
     display_experiment_features(filename_result)
 
-    print('2) Pixel Labeling and Selection')
+    print('\n2) Pixel Labeling and Selection')
 
     filename_results = experiment_segmentation(datasets, results_path)
     display_experiment_segmentation(filename_results)
 
-    print('3) Re-Labeling and Post-Processing')
+    print('\n3) Re-Labeling and Post-Processing')
 
     filename_results = experiment_reseg_and_postproc(datasets, results_path)
     display_experiment_reseg_and_postproc(filename_results)
 
-    print('4) Random Forest for Pixel Probability Estimation')
+    print('\n4) Random Forest for Pixel Probability Estimation')
 
     filename_results = experiment_model(datasets, results_path)
     display_experiment_model(filename_results)
     
-    print('done')
+    print('\nDone.')
