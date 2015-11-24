@@ -52,6 +52,7 @@ def train_and_evaluate(rf, training_set, evaluation_sets_dict, show_images=False
             # copy original sample, because sample might be
             orig_sample = sample
             sys.stdout.write('.')
+            sys.stdout.flush()
             i += 1
             for desired_object in sample.object_masks.keys():
                 sample = copy.deepcopy(orig_sample)
@@ -99,9 +100,11 @@ def train_and_evaluate(rf, training_set, evaluation_sets_dict, show_images=False
 
                         plt.close('all')
 
-        print('\r{} mean precision: {:.2}'.format(mode, np.mean(precisions[mode])))
-        print('{} mean recall: {:.2}'.format(mode, np.mean(recalls[mode])))
-        print('{} f_0.5 score: {:.3}'.format(mode, f_score(np.mean(precisions[mode]), np.mean(recalls[mode]), 0.5)))
+        print
+
+        #print('\r{} mean precision: {:.2}'.format(mode, np.mean(precisions[mode])))
+        #print('{} mean recall: {:.2}'.format(mode, np.mean(recalls[mode])))
+        #print('{} f_0.5 score: {:.3}'.format(mode, f_score(np.mean(precisions[mode]), np.mean(recalls[mode]), 0.5)))
             
     return {'precisions': precisions, 'recalls': recalls, 'candidate_objects': candidate_objects, 'desired_objects': desired_objects}
 
@@ -148,11 +151,6 @@ def experiment_APC(datasets, results_path, only_berlin_data=False):
     time_string = time.strftime("%Y-%m-%d_%H-%M")
     result_file = os.path.join(path,time_string+'.pkl')
 
-    print(path)
-    print(result_file)
-
-    print('Starting experiment_model ...')
-
     params = {'use_features':['color', 'height2D', 'edge', 'miss3D', 'height3D', 'dist2shelf'], # 'height2D''edge'
          'segmentation_method':"max_smooth", 'selection_method': "max_smooth",
          'make_convex':True, 'do_shrinking_resegmentation':True, 'do_greedy_resegmentation':True}
@@ -170,14 +168,14 @@ def experiment_APC(datasets, results_path, only_berlin_data=False):
 
     for method_name, method in methods.iteritems():
 
-        print(method_name)
-
         results[method_name] = train_and_evaluate(method, datasets['training_berlin_and_seattle'],
             {name: datasets[name] for name in ['seattle_test']},
              show_images=True, save_image_path=path)
 
         with open(result_file, 'wb') as f:
             pickle.dump(results, f, 2)
+
+    print('segmentation results are written to {}'.format(path))
 
     return result_file
 
@@ -188,8 +186,6 @@ def experiment_our_method(datasets, results_path):
     path = os.path.join(results_path, 'experiment_our_method/')
     if not os.path.isdir(path):
         os.makedirs(path)
-
-    print('Starting experiment_samples ...')
 
     time_string = time.strftime("%Y-%m-%d_%H-%M")
     filename_results = os.path.join(path,time_string+'.pkl')
@@ -205,8 +201,6 @@ def experiment_our_method(datasets, results_path):
     results = dict()
 
     for method_name, method in methods.iteritems():
-
-        print(method_name)
 
         results[method_name] = train_and_evaluate(method, datasets['berlin_selected'],
             {name: datasets[name] for name in ['berlin_selected','berlin_runs', 'seattle_runs', 'seattle_test']}, show_images=False, save_image_path=path)
@@ -321,9 +315,9 @@ def display_experiment_objects(filename):
     plt.xlabel('Recall')
     plt.ylabel('Precision')
 
-    plt.savefig(filename.replace('.pkl', '_objects.svg'))
-
-    plt.show()
+    figure_name = filename.replace('.pkl', '.svg')
+    print('Saved plot to {}'.format(figure_name))
+    plt.savefig(figure_name)
 
 # 3) Increasing the Number of Objects per Bin
 
@@ -332,8 +326,6 @@ def experiment_candidates(datasets, results_path):
     path = os.path.join(results_path, 'experiment_candidates/')
     if not os.path.isdir(path):
         os.makedirs(path)
-
-    print('Starting experiment_candidates ...')
 
     time_string = time.strftime("%Y-%m-%d_%H-%M")
     filename_results = os.path.join(path,time_string+'.pkl')
@@ -353,7 +345,6 @@ def experiment_candidates(datasets, results_path):
         for i in range(0,21):
 
             name  = method_name + repr(i)
-            print(name)
 
             results[name] = train_and_evaluate(method, datasets['berlin_selected'],
                 {n: datasets[n] for n in ['berlin_selected','berlin_runs', 'seattle_runs']}, add_candidate_objects=i)
@@ -372,7 +363,6 @@ def display_experiment_candidates(filename):
     dataset_names = ['berlin_selected', 'berlin_runs', 'seattle_runs']
 
     model_names = ['our_method'+repr(i) for i in range(len(results.keys()))]
-    print(model_names)
 
     plt.figure()
     plt.hold(True)
@@ -396,15 +386,13 @@ def display_experiment_candidates(filename):
 
     plt.legend(loc='lower left')
 
-    plt.savefig(filename.replace('.pkl', '.svg'))
-
-    plt.show()
+    figure_name = filename.replace('.pkl', '.svg')
+    print('Saved plot to {}'.format(figure_name))
+    plt.savefig(figure_name)
 
 # B. Comparison to CRF
 
 def experiment_baseline(datasets, results_path):
-
-    print('Starting experiment_model ...')
 
     path = os.path.join(results_path, 'experiment_baseline/')
     if not os.path.isdir(path):
@@ -440,8 +428,6 @@ def experiment_baseline(datasets, results_path):
     results = dict()
 
     for method_name, rf in methods.iteritems():
-
-        print(method_name)
 
         results[method_name] = train_and_evaluate(rf, datasets['berlin_selected'],
             {name: datasets[name] for name in ['berlin_selected', 'berlin_runs', 'seattle_runs', 'seattle_test']},
@@ -484,17 +470,15 @@ def display_experiment_baseline(filename):
 
     plt.legend(loc='lower left')
 
-    plt.savefig(filename.replace('.pkl', '.svg'))
-
-    plt.show()
+    figure_name = filename.replace('.pkl', '.svg')
+    print('Saved plot to {}'.format(figure_name))
+    plt.savefig(figure_name)
 
 
 # C. Variants of the Algorithm
 # 1) Changing Features
 
 def experiment_single_features(datasets, results_path):
-
-    print('Starting experiment_model ...')
 
     path = os.path.join(results_path, 'experiment_single_features/')
     if not os.path.isdir(path):
@@ -520,8 +504,6 @@ def experiment_single_features(datasets, results_path):
 
     for method_name, method in methods.iteritems():
 
-        print(method_name)
-
         results[method_name] = train_and_evaluate(method, datasets['berlin_selected'],
             {name: datasets[name] for name in ['berlin_selected', 'berlin_runs', 'seattle_runs']})
 
@@ -531,8 +513,6 @@ def experiment_single_features(datasets, results_path):
     return filename_results
 
 def experiment_removed_features(datasets, results_path):
-
-    print('Starting experiment_model ...')
 
     path = os.path.join(results_path, 'experiment_removed_features/')
     if not os.path.isdir(path):
@@ -558,8 +538,6 @@ def experiment_removed_features(datasets, results_path):
     results = dict()
 
     for method_name, method in methods.iteritems():
-
-        print(method_name)
 
         results[method_name] = train_and_evaluate(method, datasets['berlin_selected'],
             {name: datasets[name] for name in ['berlin_selected', 'berlin_runs', 'seattle_runs']})
@@ -640,7 +618,7 @@ def display_experiment_features(filenames):
         recalls = [np.mean(flatten(results[model_name]['recalls'][dataset_name])) for dataset_name in dataset_names]
         precisions = [np.mean(flatten(results[model_name]['precisions'][dataset_name])) for dataset_name in dataset_names]
         f_scores = [f_score(precision, recall, beta=0.5) for precision, recall in zip(precisions, recalls)]
-        print(model_name, f_scores)
+        #print(model_name, f_scores)
         plt.bar(x + i*width_bar, f_scores, width=width_bar, label=' '+model_name, color=colors[model_name])
 
 
@@ -653,15 +631,13 @@ def display_experiment_features(filenames):
 
     plt.legend(loc='lower right')
 
-    plt.show()
-
-    plt.savefig(filename.replace('.pkl', '.svg'))
+    figure_name = filename.replace('.pkl', '.svg')
+    print('Saved plot to {}'.format(figure_name))
+    plt.savefig(figure_name)
 
 # 2) Pixel Labeling and Selection
 
 def experiment_segmentation(datasets, results_path):
-
-    print('Starting experiment_segmentation ...')
 
     path = os.path.join(results_path, 'experiment_segmentation/')
     if not os.path.isdir(path):
@@ -682,7 +658,6 @@ def experiment_segmentation(datasets, results_path):
             method = ProbabilisticSegmentationBP(**params)
 
             name = "seg_{}_sel_{}".format(segmentation_method, selection_method)
-            print(name)
 
             results[name] = train_and_evaluate(method, datasets['berlin_selected'],
                 {name: datasets[name] for name in ['berlin_selected','berlin_runs', 'seattle_runs']})
@@ -734,15 +709,13 @@ def display_experiment_segmentation(filename):
 
     plt.legend(loc='lower left')
 
-    plt.savefig(filename.replace('.pkl', '.svg'))
-
-    plt.show()
+    figure_name = filename.replace('.pkl', '.svg')
+    print('Saved plot to {}'.format(figure_name))
+    plt.savefig(figure_name)
 
 # 3) Re-Labeling and Post-Processing
 
 def experiment_reseg_and_postproc(datasets, results_path):
-
-    print('Starting experiment resegmentation and postprocess ...')
 
     path = os.path.join(results_path, 'experiment_reseg_and_postproc/')
     if not os.path.isdir(path):
@@ -773,8 +746,6 @@ def experiment_reseg_and_postproc(datasets, results_path):
                 if do_greedy_resegmentation:
                     name += "_greedy"
 
-                print(name)
-
                 results[name] = train_and_evaluate(method, datasets['berlin_selected'],
                     {name: datasets[name] for name in ['berlin_selected','berlin_runs', 'seattle_runs']})
 
@@ -792,7 +763,6 @@ def display_experiment_reseg_and_postproc(filename):
     dataset_name = 'seattle_runs'
 
     model_names = results.keys()
-    print(model_names)
 
     recalls = np.zeros((4,3))
     precisions = np.zeros((4,3))
@@ -817,7 +787,7 @@ def display_experiment_reseg_and_postproc(filename):
                 recall = np.mean(results[model_name]['recalls'][dataset_name])
                 precision = np.mean(results[model_name]['precisions'][dataset_name])
 
-                print(model_name + " {:.2} {:.2}".format(recall, precision))
+                #print(model_name + " {:.2} {:.2}".format(recall, precision))
 
                 if marker == "*":
                     markersize = 15
@@ -839,9 +809,9 @@ def display_experiment_reseg_and_postproc(filename):
 
     plt.legend(loc='lower left')
 
-    plt.savefig(filename.replace('.pkl', '.svg'))
-
-    plt.show()
+    figure_name = filename.replace('.pkl', '.svg')
+    print('Saved plot to {}'.format(figure_name))
+    plt.savefig(figure_name)
 
 def display_experiment_reseg_and_postproc_old(filename):
 
@@ -882,15 +852,13 @@ def display_experiment_reseg_and_postproc_old(filename):
 
     plt.legend(loc='lower right')
 
-    plt.savefig(filename.replace('.pkl', '.svg'))
-
-    plt.show()
+    figure_name = filename.replace('.pkl', '.svg')
+    print('Saved plot to {}'.format(figure_name))
+    plt.savefig(figure_name)
 
 # 4) Random Forest for Pixel Probability Estimation
 
 def experiment_model(datasets, results_path):
-
-    print('Starting experiment_model ...')
 
     path = os.path.join(results_path, 'experiment_model/')
     if not os.path.isdir(path):
@@ -915,8 +883,6 @@ def experiment_model(datasets, results_path):
     results = dict()
 
     for method_name, method in methods.iteritems():
-
-        print(method_name)
 
         results[method_name] = train_and_evaluate(method, datasets['berlin_selected'],
             {name: datasets[name] for name in ['berlin_selected','berlin_runs', 'seattle_runs', 'seattle_test']}, withhold_object_info=False)
@@ -957,9 +923,9 @@ def display_experiment_model(filename):
 
     plt.legend(loc='lower left')
 
-    plt.savefig(filename.replace('.pkl', '.svg'))
-
-    plt.show()
+    figure_name = filename.replace('.pkl', '.svg')
+    print('Saved plot to {}'.format(figure_name))
+    plt.savefig(figure_name)
 
 
 global path
@@ -978,55 +944,56 @@ if __name__ == "__main__":
     dataset_names = ["berlin_runs/"+str(i+1) for i in range(3)] + ["berlin_samples", "berlin_selected"] \
                     + ["seattle_runs/"+str(i+1) for i in range(5)] + ["seattle_test"]
 
-    #datasets = compute_datasets(dataset_names, dataset_path, cache_path)
-    datasets = load_datasets(dataset_names, dataset_path, cache_path)
+    #datasets = compute_datasets(dataset_names, dataset_path, cache_path) # compute from raw data
+    datasets = load_datasets(dataset_names, dataset_path, cache_path) # load from cached data
 
     datasets['berlin_runs'] = combine_datasets([datasets["berlin_runs/"+str(i+1)] for i in range(3)])
     datasets['seattle_runs'] = combine_datasets([datasets["seattle_runs/"+str(i+1)] for i in range(5)])
 
+    plt.ion()
+
     # vizualize the dataset
-    #plt.ion()
     #datasets['seattle_test'].visualize_dataset()
 
-    # A. Performance Evaluation
-    # 1) Performance in the Amazon Picking Challenge
+    print('A. Performance Evaluation')
+    print('1) Performance in the Amazon Picking Challenge')
 
-    experiment_APC(datasets, results_path) # segmentation results are written to data/experiment_APC/...
+    experiment_APC(datasets, results_path)
 
-    # 2) Performance by Object
+    print('2) Performance by Object')
 
     filename_results = experiment_our_method(datasets, results_path)
     display_experiment_objects(filename_results)
 
-    # 3) Increasing the Number of Objects per Bin
+    print('3) Increasing the Number of Objects per Bin')
 
     filename_results = experiment_candidates(datasets, results_path)
     display_experiment_candidates(filename_results)
 
-    # B. Comparison to CRF
+    print('B. Comparison to CRF')
 
     filename_results = experiment_baseline(datasets, results_path)
     display_experiment_baseline(filename_results)
 
-    # C. Variants of the Algorithm
-    # 1) Changing Features
+    print('C. Variants of the Algorithm')
+    print('1) Changing Features')
 
     filename_result = []
     filename_result.append(experiment_single_features(datasets, results_path))
     filename_result.append(experiment_removed_features(datasets, results_path))
     display_experiment_features(filename_result)
 
-    # 2) Pixel Labeling and Selection
+    print('2) Pixel Labeling and Selection')
 
     filename_results = experiment_segmentation(datasets, results_path)
     display_experiment_segmentation(filename_results)
 
-    # 3) Re-Labeling and Post-Processing
+    print('3) Re-Labeling and Post-Processing')
 
     filename_results = experiment_reseg_and_postproc(datasets, results_path)
     display_experiment_reseg_and_postproc(filename_results)
 
-    # 4) Random Forest for Pixel Probability Estimation
+    print('4) Random Forest for Pixel Probability Estimation')
 
     filename_results = experiment_model(datasets, results_path)
     display_experiment_model(filename_results)
