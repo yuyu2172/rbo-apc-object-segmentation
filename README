@@ -17,7 +17,7 @@ Dependencies
 python setup.py install
 
 
-USAGE
+### USAGE
 =====
 
 The following command reproduces the experiments and plots in the paper (modulo minor editing to improve the readability of the plots):
