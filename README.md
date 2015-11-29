@@ -4,13 +4,18 @@ INSTALLATION
 Dependencies
 ------------
 
-0) python
+* python
 
-1) opencv -- if you don't have opencv, you can install it using:
+* opencv -- if you don't have opencv, you can install it using:
 
-	sudo apt-get install python-opencv
+	    sudo apt-get install python-opencv
 
-2) gco_python (https://github.com/amueller/gco_python)
+* gco_python (https://github.com/amueller/gco_python)
+
+        pip install --user pygco
+
+* sklearn (>= 0.16)
+* matplotlib (>= 1.5.0)
 
 -------------
 	
@@ -34,11 +39,11 @@ This repository includes the source code and a preprocessed version of the data 
 
 To use the raw data instead of the cached data in the main script, copy the data into data/rbo_apc and in main.py use compute_datasets instead of load_datasets:
 
-if __name__ == "__main__":
+    if __name__ == "__main__":
 
-    ... 
-
-    datasets = compute_datasets(dataset_names, dataset_path, cache_path) # compute from raw data
-    #datasets = load_datasets(dataset_names, dataset_path, cache_path) # load from cached data
-
-    ...
+        ... 
+    
+        datasets = compute_datasets(dataset_names, dataset_path, cache_path) # compute from raw data
+        #datasets = load_datasets(dataset_names, dataset_path, cache_path) # load from cached data
+    
+        ...
