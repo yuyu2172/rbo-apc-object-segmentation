@@ -33,7 +33,7 @@ The following command reproduces the experiments and plots in the paper (modulo 
 DATA
 ====
 
-This repository includes the source code and a preprocessed version of the data (in the data/cache/ directory). These preprocessed data consist of different .pkl files, each of which contains a set of data samples. Every data sample includes precomputed feature images that are cropped to only include the target bin and are annotated with masks for the different objects.
+This repository includes the source code and a preprocessed version of the data (in the data/cache/ directory). These preprocessed data consist of different .pkl files (which can be loaded with python's pickle module). Each of these files contains a set of data samples (see class APCDataSet in apc_data.py). Every data sample includes precomputed feature images that are cropped to only include the target bin and are annotated with masks for the different objects (see class APCSample in apc_data.py).
 
 If you need access to the raw data (complete RGB-D images, feature images, and masks), e.g. because you want to extend this code or compare your own code against it, you can find the raw data there:
 
