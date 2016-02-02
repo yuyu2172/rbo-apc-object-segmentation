@@ -33,7 +33,9 @@ The following command reproduces the experiments and plots in the paper (modulo 
 DATA
 ====
 
-This repository includes the source code and a preprocessed version of the data (in the data/cache/ directory). If you need access to the raw data, e.g. because you want to extend this code or compare your own code against it, you can find the raw data there:
+This repository includes the source code and a preprocessed version of the data (in the data/cache/ directory). These preprocessed data consist of different .pkl files, each of which contains a set of data samples. Every data sample includes precomputed feature images that are cropped to only include the target bin and are annotated with masks for the different objects.
+
+If you need access to the raw data (complete RGB-D images, feature images, and masks), e.g. because you want to extend this code or compare your own code against it, you can find the raw data there:
 
 	https://owncloud.tu-berlin.de/public.php?service=files&t=709f973be5e5d18ef5aa2a0b3c83221f
 
