@@ -1,4 +1,4 @@
-__author__ = 'rico'
+__author__ = 'rico, Yusuke Niitani'
 
 from copy import deepcopy
 import cv2
@@ -11,35 +11,49 @@ import numpy as np
 import utils
 from utils import Utils
 
-class APCSample:
 
-    def __init__(self, image_filename=None, apc_sample=None, labeled=True, infer_shelf_mask=False):
-
+class APCSample(object):
+    def __init__(self, image_filename=None, apc_sample=None, labeled=True, infer_shelf_mask=False, pickle_mask=False, image_input=None, bin_mask_input=None, data_input=None):
+        self.image = None
+        self.bin_mask = None
+        data = None
         # copy properties of a passed APCImage and remove labels if needed
         if apc_sample is not None:
             self.__dict__ = deepcopy(apc_sample.__dict__)
             if not labeled:
                 # remove object masks (= labels)
                 self.object_masks = dict()
-
         if image_filename is not None:
-
-            print(image_filename)
-
             # load image, bin_mask, and supplementary data
             bin_mask_filename = image_filename[:-4] + '.pbm'
+            bin_pickle_filename = image_filename[:-4] + '_bin' + '.pkl'
             data_filename = image_filename[:-4] + '.pkl'
 
             self.filenames = {'image': image_filename, 'bin_mask': bin_mask_filename, 'data': data_filename}
 
             self.image = Utils.load_image(image_filename)
-            self.bin_mask = Utils.load_mask(bin_mask_filename)
+            if pickle_mask:
+                self.bin_mask = Utils.load_mask_pkl(bin_pickle_filename)
+            else:
+                self.bin_mask = Utils.load_mask(bin_mask_filename)
             data = Utils.load_supplementary_data(data_filename)
 
             if self.image is None: print('-> image file not found'); return
             if self.bin_mask is None: print('-> mask file not found'); return
             if data is None: print('-> data file not found'); return
 
+
+        if ((image_input is not None)
+                and (bin_mask_input is not None)
+                and (data_input is not None)):
+            # make sure that the image is HSV
+            self.image = image_input
+            self.bin_mask = bin_mask_input
+            data = data_input
+
+        if ((self.image is not None)
+                and (self.bin_mask is not None)
+                and (data is not None)):
             # compute all features images
             self.feature_images = Utils.compute_feature_images(self.image, data)
 
@@ -81,7 +95,7 @@ class APCSample:
                 self.object_masks[object_name] = self.object_masks[object_name][y:y + h, x:x + w]
 
 
-class APCDataSet:
+class APCDataSet(object):
 
     object_names = ["champion_copper_plus_spark_plug", "kyjen_squeakin_eggs_plush_puppies", "cheezit_big_original",
                       "laugh_out_loud_joke_book", "crayola_64_ct", "mark_twain_huckleberry_finn", "mead_index_cards",
@@ -129,10 +143,10 @@ class APCDataSet:
     def load_from_cache(self):
 
         cache_filename = self.cache_filename()
-
         if os.path.isfile(cache_filename):
             with open(cache_filename, 'rb') as f:
-                self.__dict__.update(pickle.load(f))
+                loaded = pickle.load(f)
+            self.__dict__.update(loaded)
         else:
             print("Cache file not found:\n{}".format(cache_filename))
 
