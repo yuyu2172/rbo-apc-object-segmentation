@@ -84,6 +84,7 @@ class APCSample(object):
             x, y, w, h = cv2.boundingRect(contours[0])
 
             self.bounding_box = {'x':x, 'y':y, 'w':w, 'h':h}
+            self.height, self.width, _color = self.image.shape
 
             self.image = self.image[y:y + h, x:x + w, :]
             self.bin_mask = self.bin_mask[y:y + h, x:x + w]
@@ -93,6 +94,19 @@ class APCSample(object):
 
             for object_name in self.object_masks.keys():
                 self.object_masks[object_name] = self.object_masks[object_name][y:y + h, x:x + w]
+
+    def unzoom_segment(self, segment):
+        """
+        unzoom binary segment
+        """
+        return_image = np.zeros((self.height, self.width)).astype('uint8')
+        x = self.bounding_box['x']
+        y = self.bounding_box['y']
+        w = self.bounding_box['w']
+        h = self.bounding_box['h']
+
+        return_image[y:y+h, x:x+w] = segment
+        return return_image
 
 
 class APCDataSet(object):
