@@ -16,7 +16,13 @@ class APCSample(object):
     def __init__(self, image_filename=None, apc_sample=None, labeled=True,
                  infer_shelf_mask=False, pickle_mask=False, image_input=None,
                  bin_mask_input=None, data_input=None,
-                 data_dict=None, data_2016_path=None):
+                 data_dict=None, data_2016_prefix=None):
+        """
+
+        Args:
+          data_2016_prefix (str): ex: '/leus/home/.../save_pick_layout_1_2016061006_bin_l'
+        
+        """
         self.image = None
         self.bin_mask = None
         self.feature_images = None
@@ -40,8 +46,8 @@ class APCSample(object):
             self.bin_mask = bin_mask_input
             self.data_dict = data_input
 
-        if data_2016_path is not None:
-            data_dict = self.get_data_from_2016_path(data_2016_path)
+        if data_2016_prefix is not None:
+            data_dict = self.get_data_from_2016_path(data_2016_prefix)
             self.image = data_dict['color']
             self.bin_mask = data_dict['mask_image']
             self.data_dict = data_dict
@@ -72,7 +78,7 @@ class APCSample(object):
         # scale x5 is due to saving procedure
         data['depth_image'] = cv2.imread(path + '_depth.png').astype(np.float32) * 5.
         data['dist2shelf_image'] = cv2.imread(path + '_dist.png').astype(np.float32)
-        data['height3D_image'] = cv2.imread(path + '_height.png')
+        data['height3D_image'] = cv2.imread(path + '_height.png').astype(np.float32)
 
         # complete neccesary data
         data['height2D_image'] = np.zeros_like(data['height3D_image'])
@@ -170,6 +176,8 @@ class APCDataSet(object):
                       "paper_mate_12_count_mirado_black_warrior", "genuine_joe_plastic_stir_sticks", "rolodex_jumbo_pencil_cup",
                       "highland_6539_self_stick_notes", "safety_works_safety_glasses", "kong_duck_dog_toy", "sharpie_accent_tank_style_highlighters",
                       "kong_sitting_frog_dog_toy", "stanley_66_052", "feline_greenies_dental_treats", "kong_air_dog_squeakair_tennis_ball", "shelf"]
+
+    object_names_2016 = ['staples_index_cards', 'cloud_b_plush_bear', 'ticonderoga_12_pencils', 'clorox_utility_brush', 'woods_extension_cord', 'peva_shower_curtain_liner', 'creativity_chenille_stems', 'kleenex_tissue_box', 'fiskars_scissors_red', 'safety_first_outlet_plugs', 'easter_turtle_sippy_cup', 'elmers_washable_no_run_school_glue', 'kyjen_squeakin_eggs_plush_puppies', 'cool_shot_glue_sticks', 'i_am_a_bunny_book', 'fitness_gear_3lb_dumbbell', 'command_hooks', 'womens_knit_gloves', 'scotch_duct_tape', 'up_glucose_bottle', 'dasani_water_bottle', 'dove_beauty_bar', 'hanes_tube_socks', 'soft_white_lightbulb', 'kleenex_paper_towels', 'rolodex_jumbo_pencil_cup', 'folgers_classic_roast_coffee', 'laugh_out_loud_joke_book', 'jane_eyre_dvd', 'platinum_pets_dog_bowl', 'scotch_bubble_mailer', 'crayola_24_ct', 'rawlings_baseball', 'barkely_hide_bones', 'dr_browns_bottle_brush', 'cherokee_easy_tee_shirt', 'oral_b_toothbrush_red', 'oral_b_toothbrush_green', 'expo_dry_erase_board_eraser']
 
 
     def __init__(self, name='APCDataSet', samples=[], dataset_path=".", cache_path=".", compute_from_images=False, load_from_cache=False, save_to_cache=False, infer_shelf_masks=False, from_pkl=False):
