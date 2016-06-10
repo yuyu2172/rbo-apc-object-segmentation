@@ -13,35 +13,24 @@ from utils import Utils
 
 
 class APCSample(object):
-    def __init__(self, image_filename=None, apc_sample=None, labeled=True, infer_shelf_mask=False, pickle_mask=False, image_input=None, bin_mask_input=None, data_input=None):
+    def __init__(self, image_filename=None, apc_sample=None, labeled=True,
+                 infer_shelf_mask=False, pickle_mask=False, image_input=None,
+                 bin_mask_input=None, data_input=None,
+                 data_dict=None, data_2016_path=None):
         self.image = None
         self.bin_mask = None
+        self.feature_images = None
         data = None
+
         # copy properties of a passed APCImage and remove labels if needed
         if apc_sample is not None:
             self.__dict__ = deepcopy(apc_sample.__dict__)
             if not labeled:
                 # remove object masks (= labels)
                 self.object_masks = dict()
+
         if image_filename is not None:
-            # load image, bin_mask, and supplementary data
-            bin_mask_filename = image_filename[:-4] + '.pbm'
-            bin_pickle_filename = image_filename[:-4] + '_bin' + '.pkl'
-            data_filename = image_filename[:-4] + '.pkl'
-
-            self.filenames = {'image': image_filename, 'bin_mask': bin_mask_filename, 'data': data_filename}
-
-            self.image = Utils.load_image(image_filename)
-            if pickle_mask:
-                self.bin_mask = Utils.load_mask_pkl(bin_pickle_filename)
-            else:
-                self.bin_mask = Utils.load_mask(bin_mask_filename)
-            data = Utils.load_supplementary_data(data_filename)
-
-            if self.image is None: print('-> image file not found'); return
-            if self.bin_mask is None: print('-> mask file not found'); return
-            if data is None: print('-> data file not found'); return
-
+            self.load_by_filename(image_filename)
 
         if ((image_input is not None)
                 and (bin_mask_input is not None)
@@ -49,51 +38,113 @@ class APCSample(object):
             # make sure that the image is HSV
             self.image = image_input
             self.bin_mask = bin_mask_input
-            data = data_input
+            self.data_dict = data_input
 
-        if ((self.image is not None)
-                and (self.bin_mask is not None)
-                and (data is not None)):
-            # compute all features images
-            self.feature_images = Utils.compute_feature_images(self.image, data)
+        if data_2016_path is not None:
+            data_dict = self.get_data_from_2016_path(data_2016_path)
+            self.image = data_dict['color']
+            self.bin_mask = data_dict['mask_image']
+            self.data_dict = data_dict
+        elif data_dict is not None:
+            self.image = data_dict['color']
+            self.bin_mask = data_dict['mask_image']
+            self.data_dict = data_dict
 
-            self.candidate_objects = data['objects'] + ['shelf']
-            self.has_duplicate_objects = len(self.candidate_objects) != len(set(self.candidate_objects))
+        self.feature_images = Utils.compute_feature_images(self.image, self.data_dict)
 
-            self.object_masks = dict()
+        self.compute_masked_data(self.data_dict['objects'], labeled)
 
-            if labeled:
-                # try to load masks for all objects that are supposed to be in the image
-                for object_name in self.candidate_objects:
-                    mask_filename = image_filename[:-4] + '_' + object_name + '.pbm'
-                    object_mask = Utils.load_mask(mask_filename)
-                    if object_mask is not None and np.sum(object_mask) != 0:
-                        self.object_masks[object_name] = object_mask
+    def get_data_from_2016_path(self, path):
+        """Create APCSample data_dict from path
 
-                # compute the mask for the shelf if all other objects are masked
-                if infer_shelf_mask:
-                    if all([object_name in self.object_masks.keys() for object_name in self.candidate_objects if object_name != 'shelf']) \
-                            and 'shelf' not in self.object_masks.keys():
-                        if len(self.object_masks.keys()) > 1:
-                            self.object_masks['shelf'] = np.logical_and(self.bin_mask, np.logical_not(np.logical_or.reduce(self.object_masks.values())))
-                        elif len(self.object_masks.keys()) == 1:
-                            self.object_masks['shelf'] = np.logical_and(self.bin_mask, np.logical_not(self.object_masks.values()[0]))
+        Args:
+            path (str): example... '/leus/home/.../save_pick_layout_1_2016061006_bin_l'
 
-            # 'zoom' into the bounding box around the bin_mask
-            contours, _hierarchy = cv2.findContours(self.bin_mask.astype('uint8'), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-            x, y, w, h = cv2.boundingRect(contours[0])
+        """
+        data = {}
+        with open(path + '.pkl', 'rb') as f:
+            data = pickle.load(f)
 
-            self.bounding_box = {'x':x, 'y':y, 'w':w, 'h':h}
-            self.height, self.width, _color = self.image.shape
+        data['color'] = cv2.cvtColor(cv2.imread(path + '_color.png'), cv2.COLOR_BGR2HSV)
 
-            self.image = self.image[y:y + h, x:x + w, :]
-            self.bin_mask = self.bin_mask[y:y + h, x:x + w]
+        data['mask_image'] = np.sum(cv2.imread(path + '_mask.pbm'), axis=2).astype(np.bool)
 
-            for feature_name in self.feature_images.keys():
-                self.feature_images[feature_name] = self.feature_images[feature_name][y:y + h, x:x + w]
+        # scale x5 is due to saving procedure
+        data['depth_image'] = cv2.imread(path + '_depth.png').astype(np.float32) * 5.
+        data['dist2shelf_image'] = cv2.imread(path + '_dist.png').astype(np.float32)
+        data['height3D_image'] = cv2.imread(path + '_height.png')
 
-            for object_name in self.object_masks.keys():
-                self.object_masks[object_name] = self.object_masks[object_name][y:y + h, x:x + w]
+        # complete neccesary data
+        data['height2D_image'] = np.zeros_like(data['height3D_image'])
+        data['has3D_image'] = (data['depth_image'] > 0).astype(np.uint8) * 255
+        return data
+
+
+    def load_by_filename(self, image_filename):
+        # load image, bin_mask, and supplementary data
+        bin_mask_filename = image_filename[:-4] + '.pbm'
+        bin_pickle_filename = image_filename[:-4] + '_bin' + '.pkl'
+        data_filename = image_filename[:-4] + '.pkl'
+
+        self.filenames = {'image': image_filename, 'bin_mask': bin_mask_filename, 'data': data_filename}
+
+        self.image = Utils.load_image(image_filename)
+        if pickle_mask:
+            self.bin_mask = Utils.load_mask_pkl(bin_pickle_filename)
+        else:
+            self.bin_mask = Utils.load_mask(bin_mask_filename)
+        self.data_dict = Utils.load_supplementary_data(data_filename)
+
+        if self.image is None: print('-> image file not found'); return
+        if self.bin_mask is None: print('-> mask file not found'); return
+        if self.data_dict is None: print('-> data file not found'); return
+
+
+
+
+    def compute_masked_data(self, objects, labeled):
+        assert self.feature_images is not None
+        assert self.bin_mask is not None
+        assert self.image is not None
+        # compute all features images
+
+        self.candidate_objects = objects + ['shelf']
+        self.has_duplicate_objects = len(self.candidate_objects) != len(set(self.candidate_objects))
+
+        self.object_masks = dict()
+
+        if labeled:
+            # try to load masks for all objects that are supposed to be in the image
+            for object_name in self.candidate_objects:
+                mask_filename = image_filename[:-4] + '_' + object_name + '.pbm'
+                object_mask = Utils.load_mask(mask_filename)
+                if object_mask is not None and np.sum(object_mask) != 0:
+                    self.object_masks[object_name] = object_mask
+
+            # compute the mask for the shelf if all other objects are masked
+            if infer_shelf_mask:
+                if all([object_name in self.object_masks.keys() for object_name in self.candidate_objects if object_name != 'shelf']) \
+                        and 'shelf' not in self.object_masks.keys():
+                    if len(self.object_masks.keys()) > 1:
+                        self.object_masks['shelf'] = np.logical_and(self.bin_mask, np.logical_not(np.logical_or.reduce(self.object_masks.values())))
+                    elif len(self.object_masks.keys()) == 1:
+                        self.object_masks['shelf'] = np.logical_and(self.bin_mask, np.logical_not(self.object_masks.values()[0]))
+
+        # 'zoom' into the bounding box around the bin_mask
+        contours, _hierarchy = cv2.findContours(self.bin_mask.astype('uint8'), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        x, y, w, h = cv2.boundingRect(contours[0])
+
+        self.bounding_box = {'x':x, 'y':y, 'w':w, 'h':h}
+        self.height, self.width, _color = self.image.shape
+
+        self.image = self.image[y:y + h, x:x + w, :]
+        self.bin_mask = self.bin_mask[y:y + h, x:x + w]
+
+        for feature_name in self.feature_images.keys():
+            self.feature_images[feature_name] = self.feature_images[feature_name][y:y + h, x:x + w]
+
+        for object_name in self.object_masks.keys():
+            self.object_masks[object_name] = self.object_masks[object_name][y:y + h, x:x + w]
 
     def unzoom_segment(self, segment):
         """
@@ -110,6 +161,7 @@ class APCSample(object):
 
 
 class APCDataSet(object):
+    # TODO: fix object_names
 
     object_names = ["champion_copper_plus_spark_plug", "kyjen_squeakin_eggs_plush_puppies", "cheezit_big_original",
                       "laugh_out_loud_joke_book", "crayola_64_ct", "mark_twain_huckleberry_finn", "mead_index_cards",
@@ -120,7 +172,7 @@ class APCDataSet(object):
                       "kong_sitting_frog_dog_toy", "stanley_66_052", "feline_greenies_dental_treats", "kong_air_dog_squeakair_tennis_ball", "shelf"]
 
 
-    def __init__(self, name='APCDataSet', samples=[], dataset_path=".", cache_path=".", compute_from_images=False, load_from_cache=False, save_to_cache=False, infer_shelf_masks=False):
+    def __init__(self, name='APCDataSet', samples=[], dataset_path=".", cache_path=".", compute_from_images=False, load_from_cache=False, save_to_cache=False, infer_shelf_masks=False, from_pkl=False):
 
         self.name = name
         self.samples = samples
@@ -131,6 +183,8 @@ class APCDataSet(object):
             self.load_from_cache()
         elif compute_from_images:
             self.samples = [APCSample(image_filename, labeled=True, infer_shelf_mask=infer_shelf_masks) for image_filename in self.apc_image_filenames()]
+        elif from_pkl:
+            self.samples = []
         if save_to_cache:
             self.save_to_cache()
 
@@ -148,6 +202,9 @@ class APCDataSet(object):
 
         return image_filenames
 
+    def apc_2016_data_filenames(self):
+        '''Returns 2016 data path'''
+        pass
 
     def cache_filename(self):
 
