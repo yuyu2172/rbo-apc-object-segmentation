@@ -16,7 +16,7 @@ class APCSample(object):
     def __init__(self, image_filename=None, apc_sample=None, labeled=True,
                  infer_shelf_mask=False, pickle_mask=False, image_input=None,
                  bin_mask_input=None, data_input=None,
-                 data_dict=None, data_2016_prefix=None):
+                 data_dict=None, data_2016_prefix=None, is_2016=False):
         """
 
         Args:
@@ -27,6 +27,7 @@ class APCSample(object):
         self.bin_mask = None
         self.feature_images = None
         data = None
+        self.is_2016 = is_2016
 
         # copy properties of a passed APCImage and remove labels if needed
         if apc_sample is not None:
@@ -37,6 +38,7 @@ class APCSample(object):
 
         if image_filename is not None:
             self.load_by_filename(image_filename)
+            self.file_prefix = image_filename[-4:]
 
         if ((image_input is not None)
                 and (bin_mask_input is not None)
@@ -47,10 +49,10 @@ class APCSample(object):
             self.data_dict = data_input
 
         if data_2016_prefix is not None:
-            data_dict = self.get_data_from_2016_path(data_2016_prefix)
-            self.image = data_dict['color']
-            self.bin_mask = data_dict['mask_image']
-            self.data_dict = data_dict
+            self.data_dict = self.get_data_from_2016_path(data_2016_prefix)
+            self.image = self.data_dict['color']
+            self.bin_mask = self.data_dict['mask_image']
+            self.file_prefix = data_2016_prefix 
         elif data_dict is not None:
             self.image = data_dict['color']
             self.bin_mask = data_dict['mask_image']
@@ -58,7 +60,7 @@ class APCSample(object):
 
         self.feature_images = Utils.compute_feature_images(self.image, self.data_dict)
 
-        self.compute_masked_data(self.data_dict['objects'], labeled)
+        self.compute_masked_data(self.data_dict['objects'], labeled, infer_shelf_mask)
 
     def get_data_from_2016_path(self, path):
         """Create APCSample data_dict from path
@@ -82,7 +84,7 @@ class APCSample(object):
 
         # complete neccesary data
         data['height2D_image'] = np.zeros_like(data['height3D_image'])
-        data['has3D_image'] = (data['depth_image'] > 0).astype(np.uint8) * 255
+        data['has3D_image'] = (data['height3D_image'] > 0).astype(np.uint8) * 255
         return data
 
 
@@ -108,7 +110,7 @@ class APCSample(object):
 
 
 
-    def compute_masked_data(self, objects, labeled):
+    def compute_masked_data(self, objects, labeled, infer_shelf_mask):
         assert self.feature_images is not None
         assert self.bin_mask is not None
         assert self.image is not None
@@ -122,22 +124,30 @@ class APCSample(object):
         if labeled:
             # try to load masks for all objects that are supposed to be in the image
             for object_name in self.candidate_objects:
-                mask_filename = image_filename[:-4] + '_' + object_name + '.pbm'
+                if self.is_2016:
+                    mask_filename = \
+                        self.file_prefix + '_objects_' + object_name + '.pbm'
+                else:
+                    mask_filename = self.file_prefix + '_' + object_name + '.pbm'
                 object_mask = Utils.load_mask(mask_filename)
                 if object_mask is not None and np.sum(object_mask) != 0:
                     self.object_masks[object_name] = object_mask
 
             # compute the mask for the shelf if all other objects are masked
             if infer_shelf_mask:
-                if all([object_name in self.object_masks.keys() for object_name in self.candidate_objects if object_name != 'shelf']) \
-                        and 'shelf' not in self.object_masks.keys():
+                if (all([object_name in self.object_masks.keys() 
+                        for object_name in self.candidate_objects 
+                        if object_name != 'shelf']) 
+                        and 
+                        'shelf' not in self.object_masks.keys()):
                     if len(self.object_masks.keys()) > 1:
                         self.object_masks['shelf'] = np.logical_and(self.bin_mask, np.logical_not(np.logical_or.reduce(self.object_masks.values())))
                     elif len(self.object_masks.keys()) == 1:
                         self.object_masks['shelf'] = np.logical_and(self.bin_mask, np.logical_not(self.object_masks.values()[0]))
 
         # 'zoom' into the bounding box around the bin_mask
-        contours, _hierarchy = cv2.findContours(self.bin_mask.astype('uint8'), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        contours, _hierarchy = cv2.findContours(
+            self.bin_mask.astype('uint8'), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
         x, y, w, h = cv2.boundingRect(contours[0])
 
         self.bounding_box = {'x':x, 'y':y, 'w':w, 'h':h}
@@ -147,10 +157,12 @@ class APCSample(object):
         self.bin_mask = self.bin_mask[y:y + h, x:x + w]
 
         for feature_name in self.feature_images.keys():
-            self.feature_images[feature_name] = self.feature_images[feature_name][y:y + h, x:x + w]
+            self.feature_images[feature_name] = \
+                self.feature_images[feature_name][y:y + h, x:x + w]
 
         for object_name in self.object_masks.keys():
-            self.object_masks[object_name] = self.object_masks[object_name][y:y + h, x:x + w]
+            self.object_masks[object_name] = \
+                self.object_masks[object_name][y:y + h, x:x + w]
 
     def unzoom_segment(self, segment):
         """
