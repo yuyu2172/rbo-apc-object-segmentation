@@ -59,7 +59,10 @@ def evaluate(bp, test_data):
     acc_cls_list = []
     mean_iu_list = []
     fwavacc_list = []
+    print len(test_data.samples)
     for sample in test_data.samples:
+        if len(sample.object_masks) == 0:
+            continue
         pred_target = sample.object_masks.keys()[0]
         if pred_target == 'shelf':
             if len(sample.object_masks.keys()) == 1:
@@ -139,10 +142,16 @@ dataset_names = (
 # load from cached data
 datasets = load_datasets(dataset_names, dataset_path, cache_path)
 datasets['berlin_runs'] = combine_datasets(
-        [datasets["berlin_runs/"+str(i+1)] for i in range(3)])
+    [datasets["berlin_runs/"+str(i+1)] for i in range(3)])
 datasets['berlin'] = combine_datasets(
-        [datasets['berlin_selected'], datasets['berlin_runs']])
+    [datasets['berlin_selected'], datasets['berlin_runs'], datasets['berlin_samples']])
+        
 
+###############################################################################
+#                                   dataset                                   #
+###############################################################################
+data = datasets['berlin']
+train_data, test_data = data.split_simple(portion_training=0.7)
 
 
 ###############################################################################
@@ -156,8 +165,7 @@ params = {
         'do_greedy_resegmentation': True}
 bp = ProbabilisticSegmentationBP(**params)
 
-data = datasets['berlin_samples']
-train_data, test_data = data.split_simple(portion_training=0.7)
+
 bp.fit(train_data)
 
 acc_list, acc_cls_list, mean_iu_list, fwavacc_list = evaluate(bp, test_data)
@@ -178,12 +186,10 @@ params = {
         'do_greedy_resegmentation': True}
 bp = ProbabilisticSegmentationBP(**params)
 
-data = datasets['berlin_samples']
-train_data, test_data = data.split_simple(portion_training=0.7)
 bp.fit(train_data)
 acc_list, acc_cls_list, mean_iu_list, fwavacc_list = evaluate(bp, test_data)
         
-print 'color features acc ', np.mean(acc_list)
-print 'color features acc_cls ', np.mean(acc_cls_list)
-print 'color features mean_iu ', np.mean(mean_iu_list)
-print 'color features fwavcc ', np.mean(fwavacc_list)
+print 'trained only by color features acc ', np.mean(acc_list)
+print 'trained only by color features acc_cls ', np.mean(acc_cls_list)
+print 'trained only by color features mean_iu ', np.mean(mean_iu_list)
+print 'trained only by color features fwavcc ', np.mean(fwavacc_list)
