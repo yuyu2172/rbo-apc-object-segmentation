@@ -186,8 +186,47 @@ class APCDataSet(object):
                       "highland_6539_self_stick_notes", "safety_works_safety_glasses", "kong_duck_dog_toy", "sharpie_accent_tank_style_highlighters",
                       "kong_sitting_frog_dog_toy", "stanley_66_052", "feline_greenies_dental_treats", "kong_air_dog_squeakair_tennis_ball", "shelf"]
 
-    object_names = ['staples_index_cards', 'cloud_b_plush_bear', 'ticonderoga_12_pencils', 'clorox_utility_brush', 'woods_extension_cord', 'peva_shower_curtain_liner', 'creativity_chenille_stems', 'kleenex_tissue_box', 'fiskars_scissors_red', 'safety_first_outlet_plugs', 'easter_turtle_sippy_cup', 'elmers_washable_no_run_school_glue', 'kyjen_squeakin_eggs_plush_puppies', 'cool_shot_glue_sticks', 'i_am_a_bunny_book', 'fitness_gear_3lb_dumbbell', 'command_hooks', 'womens_knit_gloves', 'scotch_duct_tape', 'up_glucose_bottle', 'dasani_water_bottle', 'dove_beauty_bar', 'hanes_tube_socks', 'soft_white_lightbulb', 'kleenex_paper_towels', 'rolodex_jumbo_pencil_cup', 'folgers_classic_roast_coffee', 'laugh_out_loud_joke_book', 'jane_eyre_dvd', 'platinum_pets_dog_bowl', 'scotch_bubble_mailer', 'crayola_24_ct', 'rawlings_baseball', 'barkely_hide_bones', 'dr_browns_bottle_brush', 'cherokee_easy_tee_shirt', 'oral_b_toothbrush_red', 'oral_b_toothbrush_green', 'expo_dry_erase_board_eraser']
-
+    object_names = [
+        'shelf',
+        'barkely_hide_bones',
+        'cherokee_easy_tee_shirt',
+        'clorox_utility_brush',
+        'cloud_b_plush_bear',
+        'command_hooks',
+        'cool_shot_glue_sticks',
+        'crayola_24_ct',
+        'creativity_chenille_stems',
+        'dasani_water_bottle',
+        'dove_beauty_bar',
+        'dr_browns_bottle_brush',
+        'easter_turtle_sippy_cup',
+        'elmers_washable_no_run_school_glue',
+        'expo_dry_erase_board_eraser',
+        'fiskars_scissors_red',
+        'fitness_gear_3lb_dumbbell',
+        'folgers_classic_roast_coffee',
+        'hanes_tube_socks',
+        'i_am_a_bunny_book',
+        'jane_eyre_dvd',
+        'kleenex_paper_towels',
+        'kleenex_tissue_box',
+        'kyjen_squeakin_eggs_plush_puppies',
+        'laugh_out_loud_joke_book',
+        'oral_b_toothbrush_green',
+        'oral_b_toothbrush_red',
+        'peva_shower_curtain_liner',
+        'platinum_pets_dog_bowl',
+        'rawlings_baseball',
+        'rolodex_jumbo_pencil_cup',
+        'safety_first_outlet_plugs',
+        'scotch_bubble_mailer',
+        'scotch_duct_tape',
+        'soft_white_lightbulb',
+        'staples_index_cards',
+        'ticonderoga_12_pencils',
+        'up_glucose_bottle',
+        'womens_knit_gloves',
+        'woods_extension_cord']
 
     def __init__(self, name='APCDataSet', samples=[], dataset_path=".", cache_path=".", compute_from_images=False, load_from_cache=False, save_to_cache=False, infer_shelf_masks=False, from_pkl=False):
 

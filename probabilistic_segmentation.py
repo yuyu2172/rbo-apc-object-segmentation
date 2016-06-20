@@ -485,28 +485,19 @@ class ProbabilisticSegmentationBP(ProbabilisticSegmentation):
                     if feature_name not in ['dist2shelf', 'color']:
                         self.histograms[feature_name][object_name] += hist(sample.feature_images[feature_name][masks[feature_name]], range=(0, num_feature_values[feature_name] - 1))
 
-                if 'color' in self.use_features:
-                    if 'berlin' in sample.filenames['image']:
-                        self.histograms['color'][object_name] += hist(sample.feature_images['color'][object_mask], range=(0, num_feature_values['color'] - 1))
-                    elif 'seattle' in sample.filenames['image']:
-                        self.histograms['color_seattle'][object_name] += hist(sample.feature_images['color'][object_mask], range=(0, num_feature_values['color'] - 1))
-                    else:
-                        print('This data is not from Berlin, nor from Seattle. What should I do with it?')
+                self.histograms['color'][object_name] +=\
+                    hist(sample.feature_images['color'][object_mask],
+                            range=(0, num_feature_values['color'] - 1))
 
-        # mix color histogram from seattle and berlin
-        if 'color' in self.use_features:
+        for object_name in APCDataSet.object_names:
+            if np.sum(self.histograms['color'][object_name]) == 0:
+                print('no data for {}'.format(object_name))
+                self.histograms['color'][object_name] = self.histograms['color_seattle'][object_name]
+                pass
+            else:
+                self.histograms['color'][object_name] = \
+                    (1-self.seattle_color_weight) * self.histograms['color'][object_name] / np.sum(self.histograms['color'][object_name])
 
-            for object_name in APCDataSet.object_names:
-                if np.sum(self.histograms['color'][object_name]) == 0:
-                    #print('no berlin data for {}'.format(object_name))
-                    self.histograms['color'][object_name] = self.histograms['color_seattle'][object_name]
-                elif np.sum(self.histograms['color_seattle'][object_name]) == 0:
-                    #print('no seattle data for {}'.format(object_name))
-                    pass
-                else:
-                    self.histograms['color'][object_name] = \
-                        (1-self.seattle_color_weight) * self.histograms['color'][object_name] / np.sum(self.histograms['color'][object_name]) \
-                        + self.seattle_color_weight * self.histograms['color_seattle'][object_name] / np.sum(self.histograms['color_seattle'][object_name])
 
         # COMPUTE LIKELIHOODs FOR ALL OBJECTS AND ALL FEATURES
         for feature_name in self.use_features:
