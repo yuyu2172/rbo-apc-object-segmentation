@@ -124,11 +124,8 @@ class APCSample(object):
         if labeled:
             # try to load masks for all objects that are supposed to be in the image
             for object_name in self.candidate_objects:
-                if self.is_2016:
-                    mask_filename = \
-                        self.file_prefix + '_objects_' + object_name + '.pbm'
-                else:
-                    mask_filename = self.file_prefix + '_' + object_name + '.pbm'
+                mask_filename = \
+                    self.file_prefix + '_' + object_name + '.pbm'
                 object_mask = Utils.load_mask(mask_filename)
                 if object_mask is not None and np.sum(object_mask) != 0:
                     self.object_masks[object_name] = object_mask
@@ -181,7 +178,7 @@ class APCSample(object):
 class APCDataSet(object):
     # TODO: fix object_names
 
-    object_names = ["champion_copper_plus_spark_plug", "kyjen_squeakin_eggs_plush_puppies", "cheezit_big_original",
+    object_names_2015 = ["champion_copper_plus_spark_plug", "kyjen_squeakin_eggs_plush_puppies", "cheezit_big_original",
                       "laugh_out_loud_joke_book", "crayola_64_ct", "mark_twain_huckleberry_finn", "mead_index_cards",
                       "dr_browns_bottle_brush", "mommys_helper_outlet_plugs", "elmers_washable_no_run_school_glue",
                       "munchkin_white_hot_duck_bath_toy", "expo_dry_erase_board_eraser", "oreo_mega_stuf", "first_years_take_and_toss_straw_cup",
@@ -189,7 +186,7 @@ class APCDataSet(object):
                       "highland_6539_self_stick_notes", "safety_works_safety_glasses", "kong_duck_dog_toy", "sharpie_accent_tank_style_highlighters",
                       "kong_sitting_frog_dog_toy", "stanley_66_052", "feline_greenies_dental_treats", "kong_air_dog_squeakair_tennis_ball", "shelf"]
 
-    object_names_2016 = ['staples_index_cards', 'cloud_b_plush_bear', 'ticonderoga_12_pencils', 'clorox_utility_brush', 'woods_extension_cord', 'peva_shower_curtain_liner', 'creativity_chenille_stems', 'kleenex_tissue_box', 'fiskars_scissors_red', 'safety_first_outlet_plugs', 'easter_turtle_sippy_cup', 'elmers_washable_no_run_school_glue', 'kyjen_squeakin_eggs_plush_puppies', 'cool_shot_glue_sticks', 'i_am_a_bunny_book', 'fitness_gear_3lb_dumbbell', 'command_hooks', 'womens_knit_gloves', 'scotch_duct_tape', 'up_glucose_bottle', 'dasani_water_bottle', 'dove_beauty_bar', 'hanes_tube_socks', 'soft_white_lightbulb', 'kleenex_paper_towels', 'rolodex_jumbo_pencil_cup', 'folgers_classic_roast_coffee', 'laugh_out_loud_joke_book', 'jane_eyre_dvd', 'platinum_pets_dog_bowl', 'scotch_bubble_mailer', 'crayola_24_ct', 'rawlings_baseball', 'barkely_hide_bones', 'dr_browns_bottle_brush', 'cherokee_easy_tee_shirt', 'oral_b_toothbrush_red', 'oral_b_toothbrush_green', 'expo_dry_erase_board_eraser']
+    object_names = ['staples_index_cards', 'cloud_b_plush_bear', 'ticonderoga_12_pencils', 'clorox_utility_brush', 'woods_extension_cord', 'peva_shower_curtain_liner', 'creativity_chenille_stems', 'kleenex_tissue_box', 'fiskars_scissors_red', 'safety_first_outlet_plugs', 'easter_turtle_sippy_cup', 'elmers_washable_no_run_school_glue', 'kyjen_squeakin_eggs_plush_puppies', 'cool_shot_glue_sticks', 'i_am_a_bunny_book', 'fitness_gear_3lb_dumbbell', 'command_hooks', 'womens_knit_gloves', 'scotch_duct_tape', 'up_glucose_bottle', 'dasani_water_bottle', 'dove_beauty_bar', 'hanes_tube_socks', 'soft_white_lightbulb', 'kleenex_paper_towels', 'rolodex_jumbo_pencil_cup', 'folgers_classic_roast_coffee', 'laugh_out_loud_joke_book', 'jane_eyre_dvd', 'platinum_pets_dog_bowl', 'scotch_bubble_mailer', 'crayola_24_ct', 'rawlings_baseball', 'barkely_hide_bones', 'dr_browns_bottle_brush', 'cherokee_easy_tee_shirt', 'oral_b_toothbrush_red', 'oral_b_toothbrush_green', 'expo_dry_erase_board_eraser']
 
 
     def __init__(self, name='APCDataSet', samples=[], dataset_path=".", cache_path=".", compute_from_images=False, load_from_cache=False, save_to_cache=False, infer_shelf_masks=False, from_pkl=False):
