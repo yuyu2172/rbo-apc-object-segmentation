@@ -73,14 +73,14 @@ class APCSample(object):
         with open(path + '.pkl', 'rb') as f:
             data = pickle.load(f)
 
-        data['color'] = cv2.cvtColor(cv2.imread(path + '_color.png'), cv2.COLOR_BGR2HSV)
+        data['color'] = cv2.cvtColor(cv2.imread(path + '.jpg'), cv2.COLOR_BGR2HSV)
 
-        data['mask_image'] = np.sum(cv2.imread(path + '_mask.pbm'), axis=2).astype(np.bool)
+        data['mask_image'] = np.sum(cv2.imread(path + '.pbm'), axis=2).astype(np.bool)
 
         # scale x5 is due to saving procedure
-        data['depth_image'] = cv2.imread(path + '_depth.png').astype(np.float32) * 5.
-        data['dist2shelf_image'] = cv2.imread(path + '_dist.png').astype(np.float32)
-        data['height3D_image'] = cv2.imread(path + '_height.png').astype(np.float32)
+        #data['depth_image'] = cv2.imread(path + '_depth.png').astype(np.float32) * 5.
+        #data['dist2shelf_image'] = cv2.imread(path + '_dist.png').astype(np.float32)
+        #data['height3D_image'] = cv2.imread(path + '_height.png').astype(np.float32)
 
         # complete neccesary data
         data['height2D_image'] = np.zeros_like(data['height3D_image'])
