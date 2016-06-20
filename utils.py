@@ -8,6 +8,38 @@ import cPickle as pickle
 import matplotlib.pyplot as plt
 import numpy as np
 
+
+def visualize_color_image(img, title=''):
+    plt.figure()
+    plt.title(title)
+    plt.imshow(cv2.cvtColor(img, cv2.COLOR_HSV2RGB))
+
+def basic_image_check(img, title):
+    print 'max of img ' + title + ' ', np.max(img)
+    print 'dtype of img ' + title + ' ', img.dtype
+    plt.figure()
+    plt.title(title)
+    plt.imshow(img)
+
+
+def visualize_apc_sample_data_dict(apc_sample):
+    basic_image_check(apc_sample.data_dict['depth'], 'depth')
+    basic_image_check(apc_sample.data_dict['mask_image'], 'mask_image')
+    basic_image_check(
+        apc_sample.data_dict['dist2shelf_image'], 'dist2shelf_image')
+    basic_image_check(apc_sample.data_dict['height3D_image'], 'height3D_image')
+
+
+def visualize_apc_sample_feature(apc_sample):
+    visualize_color_image(apc_sample.image)
+
+    basic_image_check(apc_sample.feature_images['depth'], 'depth')
+    basic_image_check(apc_sample.bin_mask, 'mask_image')
+    basic_image_check(
+        apc_sample.feature_images['dist2shelf'], 'dist2shelf_image')
+    basic_image_check(apc_sample.feature_images['height3D'], 'height3D_image')
+    
+
 class Utils:
     HUE_WHITE = 180
     HUE_GRAY = 181
